@@ -1,0 +1,105 @@
+##### 2023-10-08
+
+### PREPARATION FOR TELLURAVES DATASET
+
+### Using the phylogenetic dataset from 'Ksepka DT, Grande L, Mayr G. Oldest finch-beaked birds reveal parallel ecological radiations in the earliest evolution of passerines. Current Biology. 2019 Feb 18;29(4):657-63.'
+
+### Matrix downloaded from the supplementary material of the original publication.
+### Phylogenetic tree file presented in the paper sent by D. Ksepka, phylip file format:
+# (Eudromia_elegans,Dendrocygna_bicolor,(((((((Psittacus_erithacus,(Cacatua_sulphurea,Nestor_meridionalis)),((((((Tyrannus_tyrannus,Pitta_erythrogaster),Wieslochia_weissi),(Corvus_brachyrhynchos,Spinus_pinus,Gracula_religiosa)),Acanthisitta_chloris),Zygodactylus_luberonensis,Eozygodactylus_americanus,Primozygodactylus_quintus),((((Eofringillirostrum_boudreauxi,Eofringillirostrum_parvulus),Pumiliornis_tessellatus),(Morsoravis_sedilis,Morsoravis_sp.)),Psittacopes_lepidus),Eocuculus_cherpinae)),(Cyrilavis_colburnorum,Pseudasturides_macrocephalus)),Falco_peregrinus),Cariama_cristata),((Tyto_alba,Bubo_virginianus),(((Anneavis_anneae,Tsidiiyazhi_abini,Sandcoleus_copiosus),((Oligocolius_psittacocephalon,(Colius_striatus,Urocolius_indicus)),Masillacolius_brevidactylus,Chascacocolius_oscitans,Selmes_absurdipes)),(((Leptosomus_discolor,Plesiocathartes_wyomingensis),Plesiocathartes_kelleri),(((((Paracoracias_occidentalis,Eocoracias_brachyptera,(Coracias_caudatus,Atelornis_pittoides)),Merops_ornatus),(((Megaceryle_alcyon,Dacelo_novaeguineae),Momotus_momota),(Palaeotodus_itardiensis,Todus_subulatus))),((Rupelramphastoides_knopfi,Dryocopus_pileatus),Galbula_albirostris)),((Harpactes_erythrocephalus,Trogon_melanurus),Primotrogon_wintersteini),Messelirrisor_halcyrostris,(Upupa_epops,Tockus_camurus)))))),((Buteo_jamaicensis,Sagittarius_serpentarius),Cathartes_aurea)));
+
+#####
+
+library(ape)
+library(maps)
+library(phytools)
+library(phangorn)
+library(TreeTools)
+library(TreeSearch)
+library(geiger)
+library(dispRity)
+library(fitdistrplus)
+library(remotes)
+library(janitor)
+
+#Read in tree - same 
+tree<-read.tree("Eofringillirostrum_consensus.phy")
+#Ksepka stem passerine tree:
+
+#Read matrix in nexus format
+data <- ReadCharacters("Eofringillirostrum_matrix.nex") #Simple nexus file.
+
+name.check(tree, data)
+
+#Change inapplicable states to missing states.
+data[data == "-"] <- "?"
+
+#Check the character scorings in the matrix
+check_states <- c()
+for(i in 1:ncol(data)){
+	check_states[[i]] <- sort(unique(data[,i]))
+}
+sort(unique(unlist(check_states)))
+#"{01}" "{02}" "{12}" "{23}" "0"    "1"    "2"    "3"    "4"    "5" 
+#Polymorphisms present
+
+for(i in 1:ncol(data)){
+	if (sd(data[,i], na.rm=TRUE) == 0){
+		print(i)
+	}
+}
+#none
+
+##Get frequencies of states
+
+statef(data)
+# 2   3   4   5   6   7
+#118  23   2   1   1   1 
+#0.808219178 0.157534247 0.013698630 0.006849315 0.006849315 0.006849315 
+
+#Contrast matrix
+
+#The columns are the character states, not including polymorphisms or ambiguities.
+#The rows are the different values in the matrix. Start with the states in the same order as the columns, then polymorphisms, then ambiguities. 
+
+contrast <- matrix(data=c(
+#  	0 1	2 3 4 5 6  #Each number is one character state.
+	1,0,0,0,0,0,0, #State '0'
+	0,1,0,0,0,0,0, #State '1'
+	0,0,1,0,0,0,0, #State '2'
+	0,0,0,1,0,0,0, #State '3'
+	0,0,0,0,1,0,0, #State '4'
+	0,0,0,0,0,1,0, #State '5'
+	0,0,0,0,0,0,1, #State '6'
+	1,1,0,0,0,0,0, #Polymorphism '{01}'
+	0,1,1,0,0,0,0, #Polymorphism '{12}'
+	1,1,1,1,1,1,1), #Ambiguity '?'
+	ncol=7, byrow=TRUE)
+	
+#The first vector is the row names; each value that can occur in the matrix.
+#The second vector is the column names; each character state that can occur.
+dimnames(contrast) <- list(c("0", "1", "2", "3", "4", "5", "6", "{01}", "{12}", "?"), c("0", "1", "2", "3", "4", "5", "6"))
+
+#Cost matrix
+
+#Number of steps between character state changes for ordered characters.
+
+cost <- matrix(data=c(
+#  	0 1	2 3 4 5 6  #Each number is one character state.
+	0,1,2,3,4,5,6, #State '0'
+	1,0,1,2,3,4,5, #State '1'
+	2,1,0,1,2,3,4, #State '2'
+	3,2,1,0,1,2,3, #State '3'
+	4,3,2,1,0,1,2, #State '4'
+	5,4,3,2,1,0,1, #State '5'
+	6,5,4,3,2,1,0), #State '6'
+	ncol=7, byrow=TRUE)
+dimnames(cost) <- list(c("0", "1", "2", "3", "4", "5", "6"), c("0", "1", "2", "3", "4", "5", "6"))
+
+#Vector of ordered characters, as per the nexus file
+
+ord <- c(8, 27, 34, 41, 45, 56, 105, 113, 114, 124, 128, 144)
+
+#Create a phyDat object (package 'phangorn') for downstream analyses
+
+phydat <- phyDat(data, type="USER", contrast=contrast)
