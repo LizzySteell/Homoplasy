@@ -1,0 +1,33 @@
+##### 2023-10-08
+
+### ANALYSIS 4
+
+### Calculating empirical relative homoplasy index (RHI)
+### Using Telluraves dataset as example. R code file 'Telluraves_prep' must be run before this file can be run.
+
+library(ape)
+library(maps)
+library(phytools)
+library(phangorn)
+library(TreeTools)
+library(TreeSearch)
+library(geiger)
+library(dispRity)
+library(fitdistrplus)
+library(remotes)
+library(janitor)
+
+#Ordered characters
+RHI_ord <- RHI(data, tree, 1000, contrast, ord, cost)
+
+#Unordered characters
+RHI_unord <- RHI(data, tree, 1000, contrast)
+
+rhi_score <- RHI_unord[[2]]
+rhi_score_05 <- RHI_unord[[1]]
+rhi_score_95 <- RHI_unord[[3]]
+
+#Get RI and CI for unordered matrix
+
+ri <- RI(tree, phydat)
+ci <- CI(tree, phydat)
