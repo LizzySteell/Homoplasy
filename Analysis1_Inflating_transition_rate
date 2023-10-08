@@ -1,0 +1,131 @@
+##### 2023-10-08
+
+### ANALYSIS 1
+
+### Inflating transition rate for simulated datasets. 
+### Using Telluraves dataset as example. R code file 'Telluraves_prep' must be run before this file can be run.
+
+library(ape)
+library(maps)
+library(phytools)
+library(phangorn)
+library(TreeTools)
+library(TreeSearch)
+library(geiger)
+library(dispRity)
+library(fitdistrplus)
+library(remotes)
+library(janitor)
+
+# Make contrast matrix for simulations
+
+contrast <- matrix(data=c(
+#  	0 1	2 
+	1,0,0, 
+	0,1,0, 
+	0,0,1,
+	1,1,1), 
+	ncol=3, byrow=TRUE) 
+dimnames(contrast) <- list(c("0", "1", "2", "?"), c("0", "1", "2"))
+
+#Set the meanlog values to increase transition rate
+meanlog <- seq(-8, 2, by=0.5)
+
+#Root the tree and give it branch lengths based on the matrix
+tree <- acctran(tree, phydat)
+
+#Simulate 20 matrices per meanlog value with the empirical topology and same number of characters, but 0.9 binary chars and 0.1 3-state chars. This simulation method generates whole matrices using the sim.morpho() feature from the 'DispRity' package.
+
+matrices <- c()
+for(i in 1:length(meanlog)){
+	matrices[[i]] <- replicate(20, sim.morpho(tree, characters=as.numeric(dim(data)[2]), states=c(0.9, 0.1), model="ER", rates=c(rlnorm, meanlog= meanlog[i], sdlog=0.1), invariant=FALSE))
+	print(meanlog[i])	
+}
+
+#Convert simulated matrices from an array to a list
+sims <- c()
+for(j in 1:length(matrices)){
+
+	sim <- list()
+	for(i in 1:dim(matrices[[j]])[3]){
+		sim[[i]] <- matrices[[j]][,,i]
+		}
+		sims[[j]] <- sim
+}
+
+#Make phydat objects
+phydats <- c()
+for(i in 1:length(sims)){
+	phydats[[i]] <- lapply(sims[[i]], phyDat, type="USER", contrast=contrast)
+}
+
+#Calculate metrics
+
+#Consistency index
+ci <- c()
+ci_all <- c()
+for(i in 1:length(phydats)){
+	for(j in 1:length(phydats[[i]])){
+		ci[[j]] <- CI(tree, phydats[[i]][[j]]) #Calculate CI for each individual phydat
+	}
+	ci_all[[i]] <- ci #Make object of all CI values for all phydats
+}
+
+#Make numeric and calculate median etc
+
+for(i in 1:length(ci_all)){
+	ci_all[[i]] <- as.numeric(ci_all[[i]])
+}
+
+#Retention index
+ri <- c()
+ri_all <- c()
+for(i in 1:length(phydats)){
+	for(j in 1:length(phydats[[i]])){
+		ri[[j]] <- RI(tree, phydats[[i]][[j]]) #Calculate RI for each individual phydat
+	}
+	ri_all[[i]] <- ri #Make object of all RI values for all phydats
+}
+
+for(i in 1:length(ri_all)){
+	ri_all[[i]] <- as.numeric(ri_all[[i]])
+}
+
+#Relative homoplasy index - with n = 100
+rhi <- c()
+for(i in 1:length(sims)){
+	rhi[[i]] <- lapply(sims[[i]], RHI, tree, 100, contrast)
+	print(i/length(sims))
+}
+
+#Extract RHI values
+rhi_val <- c()
+rhi_vals <- c()
+
+for(j in 1:length(rhi)){
+	for(k in 1:length(rhi[[j]])){
+		rhi_val[[k]] <- rhi[[j]][[k]][[2]]
+	}
+	rhi_vals[[j]] <- rhi_val
+}
+
+#Extract treelength (L) values
+L_val <- c()
+L_vals <- c()
+
+for(j in 1:length(rhi)){
+	for(k in 1:length(rhi[[j]])){
+		L_val[[k]] <- rhi[[j]][[k]][[4]]
+	}
+	L_vals[[j]] <- L_val
+}
+
+#Make rhi and L numeric to calculate median and quantiles/standard deviation
+
+for(i in 1:length(rhi_vals)){
+	rhi_vals[[i]] <- as.numeric(rhi_vals[[i]])
+}
+
+for(i in 1:length(L_vals)){
+	L_vals[[i]] <- as.numeric(L_vals[[i]])
+}
