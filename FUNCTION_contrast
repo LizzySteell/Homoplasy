@@ -1,0 +1,30 @@
+
+####### 2023-10-08
+
+##### CONTRAST MATRIX FUNCTION v1 #####
+
+####### Contrast matrix builder - currently only useful if no polymorphisms present. Update in future.
+
+### 
+contrast.matrix <- function(data) #Phylogenetic matrix where row names are taxa and columns are characters. No gaps allowed, only ambiguities.
+	 {
+	 	scores <- row.names(table(data)) #Makes a vector of all the possible states
+	 	states <- scores[!scores %in% c("?")] #Makes a vector of the states that convey information (0, 1, 2 etc) but not ambiguities
+	 	
+	 	matrix <- matrix(nrow=length(scores), ncol=length(states), dimnames=list(scores, states))
+	 	
+	 	for(i in 1:length(scores)){
+	 		for(j in 1:length(states))
+	 		if(scores[i] == states[j]){
+	 		matrix[i,j] <- 1 } else {
+	 			matrix[i,j] <- 0
+	 		}
+	 		}
+	 		for(k in 1:length(scores)){
+	 			if(scores[k] == "?"){
+	 				matrix[k,] <- 1
+	 			} #This puts a '1' for every column in the ambiguity row ("?")
+	 		}
+	 		
+	 		return(matrix)
+	 	}
