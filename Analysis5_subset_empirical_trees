@@ -2,7 +2,7 @@
 
 ### ANALYSIS 5
 
-### Varying number of characters using empirical topologies and empirical matrices.
+### Varying number of taxa using empirical topologies and empirical matrices.
 ### Using Telluraves dataset as example. R code file 'Telluraves_prep' must be run before this file can be run.
 
 library(ape)
