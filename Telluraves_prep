@@ -1,4 +1,4 @@
-##### 2023-10-08
+##### 2023-10-10
 
 ### PREPARATION FOR TELLURAVES DATASET
 
@@ -22,12 +22,12 @@ library(fitdistrplus)
 library(remotes)
 library(janitor)
 
-#Read in tree - same 
-tree<-read.tree("Eofringillirostrum_consensus.phy")
-#Ksepka stem passerine tree:
+#Read in tree 
+tree<-read.tree("Telluraves_tree.phy")
+
 
 #Read matrix in nexus format
-data <- ReadCharacters("Eofringillirostrum_matrix.nex") #Simple nexus file.
+data <- ReadCharacters("Telluraves_matrix.nex") #Simple nexus file.
 
 name.check(tree, data)
 
@@ -103,3 +103,5 @@ ord <- c(8, 27, 34, 41, 45, 56, 105, 113, 114, 124, 128, 144)
 #Create a phyDat object (package 'phangorn') for downstream analyses
 
 phydat <- phyDat(data, type="USER", contrast=contrast)
+
+
