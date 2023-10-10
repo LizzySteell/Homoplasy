@@ -1,0 +1,73 @@
+##### 2023-10-10
+
+### PREPARATION FOR PASSERIFORMES B DATASET
+
+### Using the phylogenetic dataset from 'Steell EM, Nguyen JM, Benson RB, Field DJ. Comparative anatomy of the passerine carpometacarpus helps illuminate the early fossil record of crown Passeriformes. Journal of Anatomy. 2023 Mar;242(3):495-509.'
+
+### Matrix downloaded from the supplementary material of the original publication. Includes all fossils.
+
+### Phylogenetic tree downloaded from original publication.
+
+#####
+
+library(ape)
+library(maps)
+library(phytools)
+library(phangorn)
+library(TreeTools)
+library(TreeSearch)
+library(geiger)
+library(dispRity)
+library(fitdistrplus)
+library(remotes)
+library(janitor)
+
+#Read in tree
+tree <- read.tree("Passeriformes_b_tree.phy") #Nexus or phylip, with or without branch lengths.
+
+#Read matrix in nexus format
+data <- ReadCharacters("Passeriformes_matrix.nex") #Simple nexus file.
+
+name.check(tree, data)
+
+#Change inapplicable states to missing states.
+data[data == "-"] <- "?"
+
+check_states <- c()
+for(i in 1:ncol(data)){
+	check_states[[i]] <- sort(unique(data[,i]))
+}
+sort(unique(unlist(check_states)))
+# "?" "0" "1" "2" 
+
+#Check for invariant sites
+for(i in 1:ncol(data)){
+	if (sd(data[,i], na.rm=TRUE) == 0){
+		print(i)
+	}
+}
+#None
+
+statef(data)
+
+#Make contrast matrix.
+#Because polymorphisms are not present, you can use the contrast.matrix function.
+contrast <- contrast.matrix(data)
+
+#Make a cost matrix 
+cost <- matrix(data=c(
+#  	0 1	2  #Each number is one character state.
+	0,1,2, #State '0'
+	1,0,1, #State '1'
+	2,1,0), #State '2'
+	ncol=3, byrow=TRUE)
+dimnames(cost) <- list(c("0", "1", "2"), c("0", "1", "2"))
+
+#Ordered characters
+
+ord <- c(6, 9, 10, 12, 18, 37, 46)
+
+#Make a phydat object
+phydat <- phyDat(data, type="USER", contrast=contrast)
+
+
