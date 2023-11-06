@@ -1,30 +1,85 @@
 
-####### 2023-10-08
+####### 2023-11-06
 
-##### CONTRAST MATRIX FUNCTION v1 #####
+##### CONTRAST MATRIX FUNCTION v2 #####
 
-####### Contrast matrix builder - currently only useful if no polymorphisms present. Update in future.
+####### Contrast matrix builder
 
-### 
-contrast.matrix <- function(data) #Phylogenetic matrix where row names are taxa and columns are characters. No gaps allowed, only ambiguities.
+# Version 2 is updated so the function can deal with polymorphisms.
+# The only requirement is that all polymorphisms are in round brackets, not curly brackets.
+# Check the dataset initially by doing table(data) - change any curly bracket polymorphisms into round brackets.
+
+
+########
+
+contrast.matrix <- function(data) 
+
+# data - Phylogenetic matrix (in simple matrix array format) where row names are taxa and columns are characters. Gaps ('-') are treated as ambiguities ('?')
 	 {
-	 	scores <- row.names(table(data)) #Makes a vector of all the possible states
-	 	states <- scores[!scores %in% c("?")] #Makes a vector of the states that convey information (0, 1, 2 etc) but not ambiguities
 	 	
+	 	#Change all '-' values to '?'
+	 	data[data == '-'] <- '?'
+	 	
+	 	
+	 	scores <- row.names(table(data)) #Makes a vector of all the possible scores, including ambiguities and polymorphisms
+	 	
+	 	#Make a subfunction to extract polymorphisms from parentheses - round brackets
+	 	paren_extract <- function(x){
+		#x is a single character string with parenthesis and values inside e.g. "(01)"
+		
+		x_extract <- gsub("[\\(\\)]","",regmatches(x, gregexpr("\\(.*?\\)", x))[[1]]) #This line of code extracts values from their parenthesis from a single character string
+                 
+		return(x_extract)
+		}
+		
+		#Make vectors of polymorphisms - with and without round brackets
+			polys <- c()
+			for(i in 1:length(scores)){
+			polys[[i]] <- paren_extract(scores[i])
+			}
+			polys <- unlist(polys) #This has no brackets
+			
+			polys_brackets <- c()
+			for(j in 1:length(polys)){
+				polys_brackets[[j]] <- parenthesize(polys[j])
+			}
+			polys_brackets <- unlist(polys_brackets) #This has brackets
+		
+			states <- scores[!scores %in% c("?", polys_brackets)] #Makes a vector of the possible states - '0', '1', '2' etc. Excludes ambiguities and polymorphisms.
+		
+	
+	#Make the contrast matrix template based on the dimensions of the states and scores.
 	 	matrix <- matrix(nrow=length(scores), ncol=length(states), dimnames=list(scores, states))
+	 	matrix <- as.data.frame(matrix)
+	 	rownames(matrix) <- scores
+	 	colnames(matrix) <- states
 	 	
 	 	for(i in 1:length(scores)){
+	 		
+	 		#Fill in the matrix for the state values
 	 		for(j in 1:length(states))
-	 		if(scores[i] == states[j]){
-	 		matrix[i,j] <- 1 } else {
-	 			matrix[i,j] <- 0
-	 		}
-	 		}
-	 		for(k in 1:length(scores)){
-	 			if(scores[k] == "?"){
-	 				matrix[k,] <- 1
-	 			} #This puts a '1' for every column in the ambiguity row ("?")
+	 			if(scores[i] == states[j]){
+	 			matrix[i,j] <- 1 } else {
+	 				matrix[i,j] <- 0
 	 		}
 	 		
-	 		return(matrix)
+	 		#Fill in the matrix for the polymorphism values
+	 			for(k in 1:length(polys)){
+	 			
+	 			poly_ind <- str_split_1(polys[k], "") #This splits the polymorphism values into separate parts
+	 		
+	 				if(scores[i] == polys_brackets[k]){
+	 				
+	 					for(o in 1:length(poly_ind)){
+	 				
+	 					matrix[polys_brackets[k], poly_ind[o]] <- 1 }		
+	 	
+	 		#Fill in the matrix for the ambiguity values
+	 				for(k in 1:length(scores)){
+	 					if(scores[k] == "?"){
+	 					matrix[k,] <- 1 } #This puts a '1' for every column in the ambiguity row ("?")
+	 					}
+	 				}
+	 		}
 	 	}
+	 		return(matrix) }
