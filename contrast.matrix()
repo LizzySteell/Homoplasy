@@ -8,7 +8,7 @@
 # Version 2 is updated so the function can deal with polymorphisms.
 # The only requirement is that all polymorphisms are in round brackets, not curly brackets.
 # Check the dataset initially by doing table(data) - change any curly bracket polymorphisms into round brackets.
-
+# Dependency: package: 'assertive.base'
 
 ########
 
