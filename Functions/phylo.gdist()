@@ -1,0 +1,34 @@
+### 2023-11-07
+### Gower distance matrix for phylogenetic datasets - phylo.gdist() v1
+### This generates a distance matrix from phylogenetic data where missing data are ignored so they are not considered in the calculations and do not skew the matrix.
+### Dependencies: package 'StatMatch'
+
+#######
+
+phylo.gdist <- function(matrix, ord=NULL){
+	
+	set.seed(13) # This is so you can check if a matrix with ordered characters or unordered characters has a different distance matrix.
+               # You can check this after you've done phylo.dist() by doing sum() on each distance matrix.
+	
+	# Matrix - phylogenetic dataset; ord - vector of ordered characters (default = null)
+	# Make matrix into dataframe
+	df <- data.frame(matrix)
+	
+	#Make '?' and '-' NA so they are not counted as different states
+	df[df == "-"] <- NA
+	df[df == "?"] <- NA
+	
+	#Specify ordered characters (per column) if 'ord' is given
+		for(i in ord){
+			mode(df[,i]) <- "ordered"
+		}
+		
+	# Calculate gower distances of the matrix	
+	dist <- gower.dist(df)
+	
+	row.names(dist) <- row.names(df) #Put taxon names into the distance matrix
+	
+	# If there are NaN taxon pairs (because they share no characters), then sample randomly from uniform distribution
+	dist[is.nan(dist)] <- runif(sum(is.nan(dist)), min=0, max=1)
+	return(dist)
+}
