@@ -1,14 +1,13 @@
+####### 2023-11-07
 
-####### 2023-11-06
-
-##### CONTRAST MATRIX FUNCTION v2 #####
+##### CONTRAST MATRIX FUNCTION v3 #####
 
 ####### Contrast matrix builder
 
-# Version 2 is updated so the function can deal with polymorphisms.
+# Version 3 is updated so the function can deal with polymorphisms. It also can deal with matrices without any polymorphisms.
 # The only requirement is that all polymorphisms are in round brackets, not curly brackets.
 # Check the dataset initially by doing table(data) - change any curly bracket polymorphisms into round brackets.
-# Dependency: package: 'assertive.base'
+# Dependencies: packages 'assertive.base', 'stringr'
 
 ########
 
@@ -39,6 +38,8 @@ contrast.matrix <- function(data)
 			}
 			polys <- unlist(polys) #This has no brackets
 			
+			if(length(polys) != 0){
+			
 			polys_brackets <- c()
 			for(j in 1:length(polys)){
 				polys_brackets[[j]] <- parenthesize(polys[j])
@@ -47,6 +48,9 @@ contrast.matrix <- function(data)
 		
 			states <- scores[!scores %in% c("?", polys_brackets)] #Makes a vector of the possible states - '0', '1', '2' etc. Excludes ambiguities and polymorphisms.
 		
+		} else {
+			states <- scores[!scores %in% c("?")] #Makes a vector of the possible states - '0', '1', '2' etc. Excludes ambiguities.
+		}
 	
 	#Make the contrast matrix template based on the dimensions of the states and scores.
 	 	matrix <- matrix(nrow=length(scores), ncol=length(states), dimnames=list(scores, states))
@@ -63,6 +67,13 @@ contrast.matrix <- function(data)
 	 				matrix[i,j] <- 0
 	 		}
 	 		
+	 		#Fill in the matrix for the ambiguity values
+	 				for(k in 1:length(scores)){
+	 					if(scores[k] == "?"){
+	 					matrix[k,] <- 1 } #This puts a '1' for every column in the ambiguity row ("?")
+	 					
+	 		if(length(polys) != 0){
+	 		
 	 		#Fill in the matrix for the polymorphism values
 	 			for(k in 1:length(polys)){
 	 			
@@ -73,11 +84,7 @@ contrast.matrix <- function(data)
 	 					for(o in 1:length(poly_ind)){
 	 				
 	 					matrix[polys_brackets[k], poly_ind[o]] <- 1 }		
-	 	
-	 		#Fill in the matrix for the ambiguity values
-	 				for(k in 1:length(scores)){
-	 					if(scores[k] == "?"){
-	 					matrix[k,] <- 1 } #This puts a '1' for every column in the ambiguity row ("?")
+	 		}	
 	 					}
 	 				}
 	 		}
