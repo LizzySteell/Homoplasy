@@ -3,6 +3,7 @@
 ### STATE FREQUENCY FUNCTION v2
 ######
 ### Calculate state frequencies in a matrix
+# Dependencies: packages 'assertive.base'
 
 
 statef <- function(data){
