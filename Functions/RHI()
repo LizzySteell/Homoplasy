@@ -2,7 +2,12 @@
 
 ##### RHI FUNCTION #####
 
-### V3: Adding code that uses the wrapper function 'morph.phydat' that prepares a phyDat object using a morphological dataset. Changes uncertainties to polymorphisms, as well as gaps to ambiguities. Creates a contrast matrix so that contrast is no longer a separate argument. Uses the 'statef' state frequencies function.
+### V3: Adding code that uses the wrapper function 'morph.phydat' that prepares a phyDat object using a morphological dataset.
+###Changes uncertainties to polymorphisms, as well as gaps to ambiguities.
+###Creates a contrast matrix so that contrast is no longer a separate argument.
+###Uses the 'statef' state frequencies function.
+
+### Dependencies: packages 'phangorn', 'assertive.base', 'ape', as well as functions from this package.
 
 ####### Calculates the Relative Homoplasy Index for a given phylogenetic dataset of discrete characters with a given topology.
 
@@ -32,19 +37,21 @@ RHI <- function(data, tree, n, ord=NULL, cost=NULL) {
 	#Subfunction to calculate tree length for each random tree
 	tree_length <- function(tree, data, ord=NULL, cost=NULL){
 	tlengths <- c()
-	phydats <- c()
+	phydats <- apply(data, 2, morph.phydat)
 		for(k in 1:dim(data)[2]){ #For each character in the matrix.
-		
-			phydats[[k]] <- morph.phydat(data[,k]) #Makes an individual phydat object for every character.
+
 			tlengths[[k]] <- parsimony(tree, phydats[[k]]) #Calculates character length for each character. Note: at this point, all characters unordered.
+			}
+			
 			
 			for(j in ord){ #For each value in the ordered character vector (if applicable).
 		
-					phydats[[j]] <- morph.phydat(data[,j]) #Makes new phydats for the ordered characters, and keeps their correct place in the list of phydats (i.e., list of characters).
+					#phydats[[j]] <- morph.phydat(data[,j]) #Makes new phydats for the ordered characters, and keeps their correct place in the list of phydats (i.e., list of characters).
 					tlengths[[j]] <- parsimony(tree, phydats[[j]], cost=cost) #Calculates character length for each ordered character.
 			}
 	
-		}
+		
+		
 	sum(unlist(tlengths)) 
 	} #Output is the tree length (number of steps) for the matrix with that topology, including ordered characters.
 	
@@ -68,19 +75,13 @@ RHI <- function(data, tree, n, ord=NULL, cost=NULL) {
 		}
 		
 		#Make vectors of polymorphisms - with and without round brackets
-			polys <- c()
-			for(i in 1:length(scores)){
-			polys[[i]] <- paren_extract(scores[i])
-			}
-			polys <- unlist(polys) #This has no brackets
+			 #This has no brackets
+			polys <- unlist(lapply(scores, paren_extract))
 			
 			if(length(polys) != 0){
 			
-			polys_brackets <- c()
-			for(o in 1:length(polys)){
-				polys_brackets[[o]] <- parenthesize(polys[o])
-			}
-			polys_brackets <- unlist(polys_brackets) #This has brackets
+			 #This has brackets
+			polys_brackets <- unlist(lapply(polys, parenthesize))
 			
 		states <- scores[!scores %in% c("?", polys_brackets)] #Makes a vector of the possible states - '0', '1', '2' etc. Excludes ambiguities and polymorphisms.
 		
