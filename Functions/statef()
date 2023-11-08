@@ -62,6 +62,6 @@ for(l in 1:length(sort(unique(unlist(states_))))){ #For each frequency of each c
 					 }
 					 states <- unlist(state_freq)
 					 states_f <- states/sum(states)
-					print(states)
-					print(states_f)			
+					return(states_f)
+							
 }
