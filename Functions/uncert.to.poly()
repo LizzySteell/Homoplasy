@@ -2,8 +2,6 @@
 
 ### uncert.to.poly: A function to change uncertainties, denoted with curly brackets, to polymorphisms in a phylogenetic matrix
 
-### Dependencies: package 'assertive.base'
-
 uncert.to.poly <- function(matrix){
 
 #Make a subfunction to extract uncertainties from parentheses - curly brackets
@@ -18,11 +16,9 @@ uncert.to.poly <- function(matrix){
 		scores <- rownames(table(matrix))
 		
 		# Extract uncertainties
-			curly <- c()
-			for(j in 1:length(scores)){
-			curly[[j]] <- curly_extract(scores[j])
-			}
-			curly <- unlist(curly)	
+		
+		curly <- unlist(lapply(scores, curly_extract))
+
 			
 			if(length(curly) != 0){ #If uncertainties present:
 				
