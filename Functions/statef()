@@ -24,27 +24,17 @@ statef <- function(data){
 		}
 		
 		#Make vectors of polymorphisms - with and without round brackets
-			polys <- c()
-			for(i in 1:length(scores)){
-			polys[[i]] <- paren_extract(scores[i])
-			}
-			polys <- unlist(polys) #This has no brackets
+			polys <- unlist(lapply(scores, paren_extract)) #This has no brackets
 			
 			if(length(polys) != 0){
-			
-			polys_brackets <- c()
-			for(o in 1:length(polys)){
-				polys_brackets[[o]] <- parenthesize(polys[o])
-			}
-			polys_brackets <- unlist(polys_brackets) #This has brackets
-			}
+
+			polys_brackets <- unlist(lapply(polys, parenthesize))
 			
 			if(length(polys) != 0){
 			
 	states_ <- c()
 		for(n in 1:ncol(data)){
 		states_[[n]] <- length(unique(data[,n])[! unique(data[,n]) %in% c("?", polys_brackets)]) #Excludes ambiguities and polymorphisms.
-		
 		 }
 		} else {
 			
@@ -63,5 +53,5 @@ for(l in 1:length(sort(unique(unlist(states_))))){ #For each frequency of each c
 					 states <- unlist(state_freq)
 					 states_f <- states/sum(states)
 					return(states_f)
-							
+					}		
 }
