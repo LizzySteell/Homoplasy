@@ -6,8 +6,6 @@
 # Dependencies: package 'phangorn'
 
 # Polymorphisms and uncertainties are treated as the same here.
-# Essential to check the states in the matrix first by doing rownames(table(matrix))
-# If any polymorphisms/uncertainties are in curly brackets, they must be changed to round brackets.
 
 # Uses the contrast.matrix() function - see functions documentation.
 
