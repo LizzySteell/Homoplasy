@@ -1,25 +1,23 @@
-
 ####### 2023-11-08
 
 ##### RHI FUNCTION #####
 
-### V2: Adding code that means gaps ('-') present in the dataset will be interpreted as ambiguities ('?').
+### V3: Adding code that uses the wrapper function 'morph.phydat' that prepares a phyDat object using a morphological dataset. Changes uncertainties to polymorphisms, as well as gaps to ambiguities. Creates a contrast matrix so that contrast is no longer a separate argument. Uses the 'statef' state frequencies function.
 
 ####### Calculates the Relative Homoplasy Index for a given phylogenetic dataset of discrete characters with a given topology.
 
 
-RHI <- function(data, tree, n, contrast, ord=NULL, cost=NULL) { 
+RHI <- function(data, tree, n, ord=NULL, cost=NULL) { 
 	
 	#data - a matrix array of discrete matrix with taxa as rows and characters as columns.
 	#tree - a phylogenetic tree (object of class phylo)
 	#n - number of randomisations
-	#contrast - a contrast matrix of the character states and scores
 	#ord - a vector listing the character numbers of ordered characters
 	#cost - a cost matrix of the step-wise cost of each character state transition
 	#If ord is specified, cost must also be specified. If not supplied, all characters are treated as unordered.
-
-	#Change gaps into ambiguities
-	data[data == '-'] <- '?'
+	
+	data[data == "-"] <- "?" # Changes gaps to ambiguities
+	data <- uncert.to.poly(data) # Changes curly brackets to round brackets
 
 	#Subfunction to randomise tips and keep topology
 	rtips <- function(tree) {
@@ -37,12 +35,12 @@ RHI <- function(data, tree, n, contrast, ord=NULL, cost=NULL) {
 	phydats <- c()
 		for(k in 1:dim(data)[2]){ #For each character in the matrix.
 		
-			phydats[[k]] <- phyDat(data[,k], type="USER", contrast=contrast) #Makes an individual phydat object for every character.
+			phydats[[k]] <- morph.phydat(data[,k]) #Makes an individual phydat object for every character.
 			tlengths[[k]] <- parsimony(tree, phydats[[k]]) #Calculates character length for each character. Note: at this point, all characters unordered.
 			
 			for(j in ord){ #For each value in the ordered character vector (if applicable).
 		
-					phydats[[j]] <- phyDat(data[,j], type="USER", contrast=contrast) #Makes new phydats for the ordered characters, and keeps their correct place in the list of phydats (i.e., list of characters).
+					phydats[[j]] <- morph.phydat(data[,j]) #Makes new phydats for the ordered characters, and keeps their correct place in the list of phydats (i.e., list of characters).
 					tlengths[[j]] <- parsimony(tree, phydats[[j]], cost=cost) #Calculates character length for each ordered character.
 			}
 	
@@ -57,19 +55,48 @@ RHI <- function(data, tree, n, contrast, ord=NULL, cost=NULL) {
 	Lnull95 <- quantile(null_tlengths, prob=0.95) 
 	
 	#Calculate frequency of each character type (i.e., number of two-state characters, number of three-state characters etc)
-	states <- c()
-		for(i in 1:ncol(data)){
-		states[[i]] <- length(unique(data[,i])[! unique(data[,i]) %in% c("?", "{01}", "{02}", "{03}", "{04}", "{05}", "{06}","{12}", "{13}", "{14}", "{15}", "{16}", "{23}", "{24}", "{25}", "{26}", "{34}", "{35}", "{36}", "{45}", "{46}", "{56}" ,"{012}", "{013}", "{014}", "{015}", "{016}", "{123}", "{124}", "{125}", "{126}", "{134}", "{135}", "{136}", "{145}", "{146}", "{156}", "{234}", "{235}", "{236}", "{245}", "{246}", "{256}", "{345}", "{346}", "{356}", "{456}", "{0123}", "{0124}", "{0125}", "{0126}", "{0134}", "{0135}", "{0136}", "{0145}", "{0146}", "{0156}", "{0234}", "{0235}", "{0236}", "{0245}", "{0246}", "{0256}", "{0345}", "{0346}", "{0356}", "{0456}" )]) #Excludes ambiguities and polymorphisms from being included as another state for each character. If polymorphisms go beyond these options, then they will need to be added into the function here.
-	 
-}
-	lmin <- c()
 	
-	for(l in 1:length(sort(unique(unlist(states))))){ #For each frequency of each character type (as in two-state, three-state etc)
-		lmin[[l]] <- 
-					(table(sort(unlist(states)))[l] #Frequencies of each character type. Total adds up to total number of characters.
-					*
-					(sort(unique(unlist(states)))[l]-1)) #Each character type e.g., 2, 3, 4 (two-states, three-states, four-states), minus one.
-						
+	scores <- row.names(table(data)) #Makes a vector of all the possible scores, including ambiguities and polymorphisms
+	 	
+	 	#Make a subfunction to extract polymorphisms from parentheses - round brackets
+	 	paren_extract <- function(x){
+		#x is a single character string with parenthesis and values inside e.g. "(01)"
+		
+		x_extract <- gsub("[\\(\\)]","",regmatches(x, gregexpr("\\(.*?\\)", x))[[1]]) #This line of code extracts values from their parenthesis from a single character string
+                 
+		return(x_extract)
+		}
+		
+		#Make vectors of polymorphisms - with and without round brackets
+			polys <- c()
+			for(i in 1:length(scores)){
+			polys[[i]] <- paren_extract(scores[i])
+			}
+			polys <- unlist(polys) #This has no brackets
+			
+			if(length(polys) != 0){
+			
+			polys_brackets <- c()
+			for(o in 1:length(polys)){
+				polys_brackets[[o]] <- parenthesize(polys[o])
+			}
+			polys_brackets <- unlist(polys_brackets) #This has brackets
+			
+		states <- scores[!scores %in% c("?", polys_brackets)] #Makes a vector of the possible states - '0', '1', '2' etc. Excludes ambiguities and polymorphisms.
+		
+			} else { #If no polymorphisms/uncertainties
+			
+			states <- scores[!scores %in% c("?")] #Makes a vector of the possible states - '0', '1', '2' etc. Excludes ambiguities.
+		}
+	 
+	#State frequencies
+	f <- statef(data)
+
+	#lmin is theoretical minimum tree length
+	lmin <- c()
+
+	for(l in 1:length(states)){
+		lmin[[l]] <- (as.numeric(states)[l]) * (f[l]*dim(data)[2])
 	}
 	
 	lmin <- sum((unlist(lmin))) #Sum each value to get the minimum number of steps for the matrix.
