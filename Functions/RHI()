@@ -1,7 +1,9 @@
 
-####### 2023-10-08
+####### 2023-11-08
 
 ##### RHI FUNCTION #####
+
+### V2: Adding code that means gaps ('-') present in the dataset will be interpreted as ambiguities ('?').
 
 ####### Calculates the Relative Homoplasy Index for a given phylogenetic dataset of discrete characters with a given topology.
 
@@ -15,7 +17,10 @@ RHI <- function(data, tree, n, contrast, ord=NULL, cost=NULL) {
 	#ord - a vector listing the character numbers of ordered characters
 	#cost - a cost matrix of the step-wise cost of each character state transition
 	#If ord is specified, cost must also be specified. If not supplied, all characters are treated as unordered.
-	
+
+	#Change gaps into ambiguities
+	data[data == '-'] <- '?'
+
 	#Subfunction to randomise tips and keep topology
 	rtips <- function(tree) {
 		new_tips <- sample(tree$tip.label)
