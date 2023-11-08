@@ -41,20 +41,13 @@ contrast.matrix <- function(data)
 		}
 		
 		#Make vectors of polymorphisms - with and without round brackets
-			polys <- c()
-			for(i in 1:length(scores)){
-			polys[[i]] <- paren_extract(scores[i])
-			}
-			polys <- unlist(polys) #This has no brackets
+			 #This has no brackets
+			polys <- unlist(lapply(scores, paren_extract))
 			
 		#Make vectors of uncertainties
-			curly <- c()
-			for(j in 1:length(scores)){
-			curly[[j]] <- curly_extract(scores[j])
-			}
-			curly <- parenthesize(unlist(curly), "curly") #This has curly brackets
-			
-			
+			curly <- unlist(lapply(scores, curly_extract))
+			curly <- parenthesize(curly, "curly") #This has curly brackets
+
 			if(length(curly) != 0){
 				scores <- scores[!scores %in% curly]
 			}
@@ -64,11 +57,8 @@ contrast.matrix <- function(data)
 			
 			if(length(polys) != 0){
 			
-			polys_brackets <- c()
-			for(j in 1:length(polys)){
-				polys_brackets[[j]] <- parenthesize(polys[j])
-			}
-			polys_brackets <- unlist(polys_brackets) #This has brackets
+			 #This has brackets
+			polys_brackets <- unlist(lapply(polys, parenthesize))
 			
 		states <- scores[!scores %in% c("?", polys_brackets)] #Makes a vector of the possible states - '0', '1', '2' etc. Excludes ambiguities and polymorphisms.
 		
