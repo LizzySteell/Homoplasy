@@ -2,12 +2,12 @@
 
 ### morph.phydat: PhyDat object wrapper function V1
 
-# To make phyDat objects (from Phangorn package) for morphological datasets. Includes changing gaps to ambiguities and creating a contrast matrix.
-# Dependencies: package 'phangorn'
+# To make phyDat objects (from Phangorn package) for morphological datasets. Includes changing gaps to ambiguities, changing uncertainties to polymorphisms, and creating a contrast matrix.
+# Dependencies: packages 'phangorn', 'assertive.base'
 
 # Polymorphisms and uncertainties are treated as the same here.
 
-# Uses the contrast.matrix() function - see functions documentation.
+# Uses the contrast.matrix() and uncert.to.poly() functions - see functions documentation.
 
 
 morph.phydat <- function(matrix){
@@ -20,6 +20,10 @@ morph.phydat <- function(matrix){
 	
 	# Remove gaps
 	matrix[matrix == "-"] <- "?"
+	
+	# Change uncertainties into polymorphisms, if any
+	
+	matrix <- uncert.to.poly(matrix)
 	
 	# Create phyDat object
 	
