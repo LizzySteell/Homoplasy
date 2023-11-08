@@ -1,0 +1,32 @@
+### 2023-11-08
+
+### morph.phydat: PhyDat object wrapper function V1
+
+# To make phyDat objects (from Phangorn package) for morphological datasets. Includes changing gaps to ambiguities and creating a contrast matrix.
+# Dependencies: package 'phangorn'
+
+# Polymorphisms and uncertainties are treated as the same here.
+# Essential to check the states in the matrix first by doing rownames(table(matrix))
+# If any polymorphisms/uncertainties are in curly brackets, they must be changed to round brackets.
+
+# Uses the contrast.matrix() function - see functions documentation.
+
+
+morph.phydat <- function(matrix){
+	
+	# Matrix of class matrix array which a phylogenetic dataset; taxa as rows, characters as columns.
+	# Polymorphisms or uncertainties indicated with round brackets only
+	
+	# Create contrast matrix
+	contrast <- contrast.matrix(matrix)
+	
+	# Remove gaps
+	matrix[matrix == "-"] <- "?"
+	
+	# Create phyDat object
+	
+	phydat <- phyDat(matrix, type="USER", contrast=contrast)
+	
+	return(phydat)
+	
+}
