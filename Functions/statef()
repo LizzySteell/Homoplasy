@@ -3,14 +3,55 @@
 ### STATE FREQUENCY FUNCTION v1
 ######
 ### Calculate state frequencies in a matrix
+
+
 statef <- function(data){
 	#data - matrix array character taxon matrix
 	
+	data[data == "-"] <- "?" # Changes gaps to ambiguities
+	data <- uncert.to.poly(data) # Changes curly brackets to round brackets
+	
+	scores <- row.names(table(data)) #Makes a vector of all the possible scores, including ambiguities and polymorphisms
+	 	
+	 	#Make a subfunction to extract polymorphisms from parentheses - round brackets
+	 	paren_extract <- function(x){
+		#x is a single character string with parenthesis and values inside e.g. "(01)"
+		
+		x_extract <- gsub("[\\(\\)]","",regmatches(x, gregexpr("\\(.*?\\)", x))[[1]]) #This line of code extracts values from their parenthesis from a single character string
+                 
+		return(x_extract)
+		}
+		
+		#Make vectors of polymorphisms - with and without round brackets
+			polys <- c()
+			for(i in 1:length(scores)){
+			polys[[i]] <- paren_extract(scores[i])
+			}
+			polys <- unlist(polys) #This has no brackets
+			
+			if(length(polys) != 0){
+			
+			polys_brackets <- c()
+			for(o in 1:length(polys)){
+				polys_brackets[[o]] <- parenthesize(polys[o])
+			}
+			polys_brackets <- unlist(polys_brackets) #This has brackets
+			}
+			
+			if(length(polys) != 0){
+			
 	states_ <- c()
-		for(i in 1:ncol(data)){
-		states_[[i]] <- length(unique(data[,i])[! unique(data[,i]) %in% c("?", "{01}", "{02}", "{03}", "{04}", "{05}", "{06}","{12}", "{13}", "{14}", "{15}", "{16}", "{23}", "{24}", "{25}", "{26}", "{34}", "{35}", "{36}", "{45}", "{46}", "{56}" ,"{012}", "{013}", "{014}", "{015}", "{016}", "{123}", "{124}", "{125}", "{126}", "{134}", "{135}", "{136}", "{145}", "{146}", "{156}", "{234}", "{235}", "{236}", "{245}", "{246}", "{256}", "{345}", "{346}", "{356}", "{456}", "{0123}", "{0124}", "{0125}", "{0126}", "{0134}", "{0135}", "{0136}", "{0145}", "{0146}", "{0156}", "{0234}", "{0235}", "{0236}", "{0245}", "{0246}", "{0256}", "{0345}", "{0346}", "{0356}", "{0456}" )]) #Excludes ambiguities and polymorphisms from being included as another state for each character. If polymorphisms go beyond these options, then they will need to be added into the vector here.
-	 
-}
+		for(n in 1:ncol(data)){
+		states_[[n]] <- length(unique(data[,n])[! unique(data[,n]) %in% c("?", polys_brackets)]) #Excludes ambiguities and polymorphisms.
+		
+		 }
+		} else {
+			
+			states_ <- c()
+			for(j in 1:ncol(data)){
+			states_[[j]] <- length(unique(data[,j])[! unique(data[,j]) %in% c("?")])
+	 		#Excludes ambiguities if polymorphisms not present
+} }
 
 state_freq <- c()
 for(l in 1:length(sort(unique(unlist(states_))))){ #For each frequency of each character type (as in two-state, three-state etc)
