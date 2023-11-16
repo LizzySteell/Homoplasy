@@ -1,0 +1,67 @@
+### 2023-11-16
+### This version is simplified so it only processes unordered characters. The function will be edited in future to include ordered characters.
+
+RHI_unord <- function(data, tree, n) { 
+	
+	### FOR UNORDERED CHARACTERS ONLY
+	
+	#data - a morphological phydat object generated using morph.phydat().
+	#tree - a phylogenetic tree (object of class phylo)
+	#n - number of randomisations
+	
+	
+	if(class(data) != "phyDat"){
+		return("Error: data is not of class 'phyDat'")
+	}
+
+	#Subfunction to randomise tips and keep topology
+	rtips <- function(tree) {
+		new_tips <- sample(tree$tip.label)
+		Rtree <- tree
+	Rtree$tip.label <- new_tips
+	return(Rtree)
+	}
+	#Replicates tip randomising n times and creates a list of trees
+	random_trees <- replicate(n, rtips(tree), simplify=FALSE)
+	
+	null_tlengths <- unlist(lapply(random_trees, parsimony, data)) #Calculates the tree length for the matrix when each randomised topology is applied, and creates a vector of n parsimony scores. Note: the 	empirical dataset stays the same and is not altered.
+	
+	Lnull <- quantile(null_tlengths, prob=0.5) #Calculates the median tree length for the randomised 	trees.
+	Lnull5 <- quantile(null_tlengths, prob=0.05)
+	Lnull95 <- quantile(null_tlengths, prob=0.95) 
+	
+	#Calculate frequency of each character type (i.e., number of two-state characters, number of three-state characters etc)
+	
+	matrix <- t(as.data.frame(data))
+	
+	states <- get.states(matrix)
+	 
+	#State frequencies
+	f <- statef(matrix)
+
+	#lmin is theoretical minimum tree length
+	lmin <- c()
+
+	for(l in 1:length(states)){
+		lmin[[l]] <- (as.numeric(states)[l]) * (f[l]*dim(matrix)[2])
+	}
+	
+	lmin <- sum((unlist(lmin))) #Sum each value to get the minimum number of steps for the matrix.
+	
+	L <- parsimony(tree, data) #Calculates the parsimony score of the matrix with the supplied tree.
+	
+	
+	RHI_low <- (L-lmin)/(Lnull5-lmin) #Calculates the lower bound of the 95% CI.
+	RHI <- (L-lmin)/(Lnull-lmin) #Calculates the RHI for the median null tree length (Lnull).
+	RHI_high <- (L-lmin)/(Lnull95-lmin) #Calculates the RHI for the upper bound of the 95% CI
+	
+	
+	names(RHI_low) <- "5% quantile"
+	names(RHI) <- "RHI"
+	names(RHI_high) <- "95% quantile"
+	names(L) <- "Tree Length" #Prints the empirical tree length.
+	names(lmin) <- "Lmin"
+	
+	print(c(RHI_low, RHI, RHI_high, L, lmin))
+	
+	}
