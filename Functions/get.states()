@@ -1,0 +1,40 @@
+### Function 'get.states()'
+
+### To get charater states from a phylogenetic matrix. Ignores polymorphisms (round brackets only), gaps and '?'
+
+
+get.states <- function(data) {
+	
+	#data - matrix array of phylogenetic dataset
+		
+		#Change gaps to ?
+		data[data == "-"] <- "?"
+		
+	scores <- row.names(table(matrix)) #Makes a vector of all the possible scores, including ambiguities and polymorphisms
+	 	
+	 	#Make a subfunction to extract polymorphisms from parentheses - round brackets
+	 	paren_extract <- function(x){
+		#x is a single character string with parenthesis and values inside e.g. "(01)"
+		
+		x_extract <- gsub("[\\(\\)]","",regmatches(x, gregexpr("\\(.*?\\)", x))[[1]]) #This line of code extracts values from their parenthesis from a single character string
+                 
+		return(x_extract)
+		}
+		
+		#Make vectors of polymorphisms - with and without round brackets
+			 #This has no brackets
+			polys <- unlist(lapply(scores, paren_extract))
+			
+			if(length(polys) != 0){
+			
+			 #This has brackets
+			polys_brackets <- unlist(lapply(polys, parenthesize))
+			
+		states <- scores[!scores %in% c("?", polys_brackets)] #Makes a vector of the possible states - '0', '1', '2' etc. Excludes ambiguities and polymorphisms.
+		
+			} else { #If no polymorphisms/uncertainties
+			
+			states <- scores[!scores %in% c("?")] #Makes a vector of the possible states - '0', '1', '2' etc. Excludes ambiguities.
+		}
+		
+		return(states) }
