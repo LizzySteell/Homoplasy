@@ -1,7 +1,4 @@
-### 2023-11-16
-### This version is simplified so it only processes unordered characters. The function will be edited in future to include ordered characters.
-
-RHI_unord <- function(data, tree, n) { 
+RHI_unord <- function(data, tree, n){ 
 	
 	### FOR UNORDERED CHARACTERS ONLY
 	
@@ -10,7 +7,7 @@ RHI_unord <- function(data, tree, n) {
 	#n - number of randomisations
 
 	#Subfunction to randomise tips and keep topology
-	rtips <- function(tree) {
+	rtips <- function(tree){
 		new_tips <- sample(tree$tip.label)
 		Rtree <- tree
 	Rtree$tip.label <- new_tips
@@ -46,9 +43,9 @@ RHI_unord <- function(data, tree, n) {
 	L <- parsimony(tree, data) #Calculates the parsimony score of the matrix with the supplied tree.
 	
 	
-	RHI_low <- (L-lmin)/(Lnull5-lmin) #Calculates the lower bound of the 95% CI.
+	RHI_low <- (L-lmin)/(Lnull95-lmin) #Calculates the lower bound of the 95% CI.
 	RHI <- (L-lmin)/(Lnull-lmin) #Calculates the RHI for the median null tree length (Lnull).
-	RHI_high <- (L-lmin)/(Lnull95-lmin) #Calculates the RHI for the upper bound of the 95% CI
+	RHI_high <- (L-lmin)/(Lnull5-lmin) #Calculates the RHI for the upper bound of the 95% CI
 	
 	
 	names(RHI_low) <- "5% quantile"
