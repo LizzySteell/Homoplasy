@@ -1,0 +1,43 @@
+### 2023-11-17
+
+### poly.to.amb(): A function to change polymorphisms to ambiguities '?' in a matrix
+
+poly.to.amb <- function(matrix){
+	
+	# matrix: Phylogenetic character matrix of class matrix array
+	
+	# First change uncertainties (curly brackets) to polymorphisms
+	
+	matrix <- uncert.to.poly(matrix)
+	
+#Make a subfunction to extract polymorphisms from parentheses - round brackets
+	 	extract <- function(x){
+		#x is a single character string with parenthesis and values inside e.g. "{01}"
+		
+		x_extr <- gsub("[\\(\\)]","",regmatches(x, gregexpr("\\(.*?\\)", x))[[1]]) #This line of code extracts values from their round brackets from a single character string
+                 
+		return(x_extr)
+		}
+		
+		scores <- rownames(table(matrix))
+		
+		# Extract polies
+		
+		poly <- unlist(lapply(scores, extract))
+
+			
+			if(length(poly) != 0){ #If polies present:
+				
+				## Puts the polies into a vector with brackets
+				round_bracket <- parenthesize(poly, "round")
+				
+				#Change polies to ambiguities
+				for(i in 1:length(round_bracket)){
+					matrix[matrix == round_bracket[i]] <- "?"
+				}
+				
+				
+				
+			}
+			return(matrix)
+				}
