@@ -8,11 +8,6 @@ RHI_unord <- function(data, tree, n) {
 	#data - a morphological phydat object generated using morph.phydat().
 	#tree - a phylogenetic tree (object of class phylo)
 	#n - number of randomisations
-	
-	
-	if(class(data) != "phyDat"){
-		return("Error: data is not of class 'phyDat'")
-	}
 
 	#Subfunction to randomise tips and keep topology
 	rtips <- function(tree) {
