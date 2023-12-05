@@ -1,3 +1,5 @@
+### 2023-12-05
+
 RHI_unord <- function(data, tree, n){ 
 	
 	### FOR UNORDERED CHARACTERS ONLY
@@ -34,11 +36,15 @@ RHI_unord <- function(data, tree, n){
 	#lmin is theoretical minimum tree length
 	lmin <- c()
 
-	for(l in 1:length(states)){
+	for(l in 1:length(f)){
 		lmin[[l]] <- (as.numeric(states)[l]) * (f[l]*dim(matrix)[2])
 	}
 	
-	lmin <- sum((unlist(lmin))) #Sum each value to get the minimum number of steps for the matrix.
+	#Exclude NAs in case multistate characters miss states (e.g. character that has max 9 states actually has 8 states)
+	
+	lmin <- na.omit(unlist(lmin))
+	
+	lmin <- sum(as.numeric(lmin)) #Sum each value to get the minimum number of steps for the matrix.
 	
 	L <- parsimony(tree, data) #Calculates the parsimony score of the matrix with the supplied tree.
 	
