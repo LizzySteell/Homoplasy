@@ -1,11 +1,12 @@
-####### 2023-11-08
+####### 2024-01-29
 
-##### CONTRAST MATRIX FUNCTION v4 #####
+##### CONTRAST MATRIX FUNCTION v4.1 #####
 
 ####### Contrast matrix builder
 
-# Version 4 is updated so the function can deal with polymorphisms and uncertainties. It also can deal with matrices without any polymorphisms.
+# Version 4.1 is updated so the function can deal with polymorphisms and uncertainties. It also can deal with matrices without any polymorphisms.
 # Polymorphisms (denoted with round brackets) and uncertainties (denoted with curly brackets) are treated the same.
+# Newest update: changes the contrast matrix into a matrix object, rather than dataframe object, so it is compatible with Phangorn package.
 
 # Dependencies: packages 'assertive.base', 'stringr'
 
@@ -104,4 +105,5 @@ contrast.matrix <- function(data)
 	 				}
 	 		}
 	 	}
+		matrix <- as.matrix(matrix)
 	 		return(matrix) }
