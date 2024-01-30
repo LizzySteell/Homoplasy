@@ -73,7 +73,7 @@ RHI <- function(data, tree, n, ord=NULL, cost=NULL){
 	lmin <- c()
 
 	for(l in 1:length(f)){
-		lmin[[l]] <- (as.numeric(states)[l]) * (f[l]*dim(matrix)[2])
+		lmin[[l]] <- ((as.numeric(states)[l+1]) * (f[l]*dim(matrix)[2]))
 	}
 	
 	#Exclude NAs in case multistate characters miss states (e.g. character that has max 9 states actually has 8 states)
