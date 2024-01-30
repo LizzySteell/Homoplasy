@@ -1,0 +1,52 @@
+####### 2024-01-30
+
+##### RHI FUNCTION INCORPORATING MUTLIPHYLO OBJECT#####
+
+### V1.0: Enables user to calculate RHI for a distribution of trees instead of a single tree by inputting a multiPhylo object
+
+### Dependencies: packages 'phangorn', 'assertive.base', 'ape', as well as functions from this package.
+
+####### Calculates the Relative Homoplasy Index for a given phylogenetic dataset of discrete characters with a given topology.
+
+
+#RHI function including ordered characters
+
+RHI.multi <- function(data, trees, n, ord=NULL, cost=NULL){ 
+	
+	### 
+	
+	#data - a morphological phydat object generated using morph.phydat().
+	#trees - a list of phylogenetic trees (object of class multiPhylo)
+	#n - number of randomisations
+	#ord - a vector containing numbers for the specific ordered characters in the dataset
+	#cost - a cost matrix specifing the cost per character state change (transition)
+	
+	
+	### Replicate the phydat object to match the number of trees in the multiPhylo
+	
+	data_list <- replicate(length(trees), list(data))
+	
+	# Use mapply() to apply RHI function to replicated phydats and multiphylo
+	
+	RHIs <- mapply(RHI, data_list, trees, n)
+	
+	# Calculate the median, 0.05 and 0.95 quantiles
+	
+	RHIs_med <- quantile(RHIs[2,], prob=0.5)
+	RHIs_05 <- quantile(RHIs[2,], prob=0.05)
+	RHIs_95 <- quantile(RHIs[2,], prob=0.95)
+	
+	# Calculate median tree length
+	
+	L_med <- quantile(RHIs[4,], prob=0.5)
+	
+	
+	names(RHIs_05) <- "5% quantile"
+	names(RHIs_med) <- "median RHI"
+	names(RHIs_95) <- "95% quantile"
+	names(L_med) <- "median Tree Length" #Prints the empirical tree length.
+
+	
+	print(c(RHIs_05, RHIs_med, RHIs_95, L_med))
+	
+	}
