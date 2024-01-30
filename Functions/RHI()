@@ -104,6 +104,6 @@ RHI <- function(data, tree, n, ord=NULL, cost=NULL){
 	names(L) <- "Tree Length" #Prints the empirical tree length.
 	names(lmin) <- "Lmin"
 	
-	print(c(RHI_low, RHI, RHI_high, L, lmin))
+	return(c(RHI_low, RHI, RHI_high, L, lmin))
 	
 	}
