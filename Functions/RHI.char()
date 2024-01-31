@@ -1,0 +1,83 @@
+####### 2024-01-31
+
+##### RHI FUNCTION TO CALCULATE PER CHARACTER RHI VALUES#####
+
+### V1.0: Enables user to calculate RHI for a distribution of trees instead of a single tree by inputting a multiPhylo object
+
+### Dependencies: packages 'phangorn', 'assertive.base', 'ape', as well as functions from this package.
+
+####### Calculates the Relative Homoplasy Index for a given phylogenetic dataset of discrete characters with a given topology.
+### Current version cannot calculate RHI for ordered multistate characters.
+
+
+RHI.char <- function(data, tree, n){ 
+	
+	### 
+	
+	#data - a morphological phydat object generated using morph.phydat().
+	#tree - a phylogenetic tree (object of class phylo)
+	#n - number of randomisations
+
+	
+	# Get number of characters from dataset
+	nchar <- dim(as.matrix(data))[2]
+	
+	#Put each character in phydat format into a list
+	char_list <- c()
+	for(i in 1:nchar){
+		char_list[[i]] <- data[,i]
+	}
+	
+	#lmin for individual characters is total number states -1 
+
+	lmin_char <- length(get.states(matrix[,1])) - 1
+	
+	#Convert phydat to matrix
+	matrix <- t(as.data.frame(data))
+	
+	#Create a list of lmins per chatacter
+	lmin_chars <- c()
+	for(k in 1:length(char_list)){
+		lmin_chars[[k]] <- length(get.states(matrix[,k])) - 1
+	}
+	
+	lmin_chars <- unlist(lmin_chars)
+	
+	#Caluculate Lnull as normal
+	
+	#Subfunction to randomise tips and keep topology
+	rtips <- function(tree){
+		new_tips <- sample(tree$tip.label)
+		Rtree <- tree
+	Rtree$tip.label <- new_tips
+	return(Rtree)
+	}
+	#Replicates tip randomising n times and creates a list of trees
+	random_trees <- replicate(n, rtips(tree), simplify=FALSE)
+	
+	### For now, just for unordered characters - otherwise cost matrix has to be calculated per character
+		
+		null_tlengths_char <- c()
+		for(m in 1:length(char_list)){
+	
+	null_tlengths_char[[m]] <- unlist(lapply(random_trees, parsimony, char_list[[m]])) 
+	
+		}
+	
+	# Calculate median Lnull per character
+	
+	Lnull_char_med <- as.numeric(unlist(lapply(null_tlengths_char, quantile, prob=0.5)))
+	
+	# Calculate character length for each character
+	
+	char_lengths <- parsimony(tree, data, site='site')
+	
+	
+	# Calculate RHI per character from median character length.
+	
+		RHI_char <- (char_lengths-lmin_chars)/(Lnull_char_med-lmin_chars)
+		
+		
+		return(RHI_char)
+	
+	}
