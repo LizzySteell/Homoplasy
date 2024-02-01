@@ -1,0 +1,72 @@
+### 01-02-2024
+
+#### Homoplasy Slope Ratio 
+
+### Reference: Meier R, Kores P, Darwin S. Homoplasy slope ratio: a better measurement of observed homoplasy in cladistic analyses. Systematic Biology. 1991 Mar 1;40(1):74-88.
+
+### Note: Mendler et al created a function for this, however formatting of that function was not compatible with others in this package.
+
+HSR <- function(data, tree, n, noise=TRUE){
+	
+	# data - matrix of morphological data in phydat format (using morph.phydat)
+	# tree - a phylogenetic tree of class 'phylo'
+	# n - number of permutations of the matrix
+	# noise - refers to whether the 'noise' of an empirical matrix should be retained for the randomised matrices, which would include polymorphic states and missing data. If set to FALSE, the randomised matrices are generated 'without noise' so that they comprise only the actual character states for each character (no missing data, no polymorphisms).
+	
+	# Calculate number of taxa
+	t <- length(tree$tip.label)
+	
+	# Subfunction to do calculation for extra steps (necessary for later):
+	extra_steps <- function(data, tree){
+		(1/CI(tree, data)) - 1
+	}
+	
+	# Calculate extra steps (ES) for empirical data
+	ES <- extra_steps(data, tree)
+	
+	# Calculate homoplasy slope for empirical data
+	HS <- ES/(t-3)
+	
+	
+	# Change format of phydat to matrix
+	matrix <- t(as.data.frame(data))
+	
+	if(noise == TRUE){
+	
+	# Generate random data with same number of taxa and characters. Each character state has equal probabilities, and each scoring (character state for specific character and taxon) is independent from any other scoring. This version of the function uses the exact scorings in the matrix, including polymorphisms and missing data.
+	random_matrices <- replicate(n, apply(matrix, 2, sample, replace=TRUE), simplify=FALSE)
+	
+	}else{
+		
+		#If noise=FALSE then function excludes missing data and other non-state scorings (polymorphisms) (hereby called 'noise')
+	
+	#Get states per character
+	states <- apply(matrix, 2, get.states)
+	
+	# Generate random matrices
+	random_matrices <- replicate(n, t(do.call(rbind, lapply(states, sample, size=t, replace=TRUE))), simplify=FALSE)
+	
+	}
+	
+	# Add row names
+	rows <- c(tree$tip.label)
+	for(i in 1:length(random_matrices)){
+		row.names(random_matrices[[i]]) <- rows
+	}
+	
+	# Create morphological phydats for each random matrix
+	random_phydats <- lapply(random_matrices, morph.phydat)
+	
+	# Calculate ES for random matrices
+	ES_random <- unlist(lapply(random_phydats, extra_steps, tree))
+	
+	# Calculate homoplasy slope for random datasets and calculate mean
+	HS_random_mean <- mean(ES_random/(t-3))
+	
+	# Calculate homoplasy slope ratio
+	hsr <- HS/HS_random_mean
+	
+	return(hsr)
+	
+	
+}
