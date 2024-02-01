@@ -1,0 +1,72 @@
+##### HOMOPLASY EXCESS RATIO
+
+### Reference: Archie JW. Homoplasy excess ratios: new indices for measuring levels of homoplasy in phylogenetic systematics and a critique of the consistency index. Systematic Zoology. 1989 Sep 1;38(3):253-69.
+
+### Function to calculate the HER (homplasy excess ratio). Originally the phylogenetic tree aspect was estimated in an inference software (e.g. PAUP) but here it is estimated with 'Phangorn'. 
+
+HER <- function(data, tree, n, maxit=500, minit=50, k=10){
+	
+	# data - matrix of morphological data in phydat format (using morph.phydat)
+	# tree - a phylogenetic tree of class 'phylo'
+	# n - number of permutations of the matrix
+	# maxit - max number of iterations in parsimony ratchet
+	# minit - min number of iterations in parsimony ratchet
+	# k - max number of rounds before ratchet is stopped when there is no improvement
+
+	# Change phydat into standard matrix
+	matrix <- t(as.data.frame(data))
+
+	# First permute the character scorings across taxa for each character. Creates a list of n random matrices.
+	
+	random_matrices <- replicate(n, apply(matrix, 2, sample, replace=FALSE), simplify=FALSE)
+	
+	# Add row names
+	rows <- c(tree$tip.label)
+	
+	for(i in 1:length(random_matrices)){
+		row.names(random_matrices[[i]]) <- rows
+	}
+	
+	# Create morphological phydats for each random matrix
+	
+	random_phydats <- lapply(random_matrices, morph.phydat)
+	
+	# Estimate minimum length trees from the random datasets using parsimony
+	
+	trees <- lapply(random_phydats, pratchet, minit=50, maxit=500)
+	
+	# Calculate lmin for matrix
+	
+	states <- get.states(matrix)
+	 
+	#State frequencies
+	f <- statef(matrix)
+
+	#lmin is theoretical minimum tree length
+	lmin <- c()
+
+	for(l in 1:length(f)){
+		lmin[[l]] <- ((as.numeric(states)[l+1]) * (f[l]*dim(matrix)[2]))
+	}
+	
+	#Exclude NAs in case multistate characters miss states (e.g. character that has max 9 states actually has 8 states)
+	
+	lmin <- na.omit(unlist(lmin))
+	
+	lmin <- sum(as.numeric(lmin)) #Sum each value to get the minimum number of steps for the matrix.
+
+	# Get parsimony score for input tree and real matrix
+	
+	L <- parsimony(tree, data)
+
+	# Get parsimony score for each random tree
+	
+	MeanNS <- mean(mapply(parsimony, trees, random_phydats))
+	
+	# Calculate HER
+	
+	HER <- 1-((L-lmin)/(MeanNS-lmin))
+	
+	return(HER)
+	
+}
