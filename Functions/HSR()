@@ -1,4 +1,4 @@
-### 01-02-2024
+### 2024-02-06
 
 #### Homoplasy Slope Ratio 
 
@@ -44,7 +44,20 @@ HSR <- function(data, tree, n, noise=TRUE){
 	states <- apply(matrix, 2, get.states)
 	
 	# Generate random matrices
-	random_matrices <- replicate(n, t(do.call(rbind, lapply(states, sample, size=t, replace=TRUE))), simplify=FALSE)
+	
+	random_matrices <- replicate(n, matrix(nrow=dim(matrix)[1], ncol=dim(matrix)[2]), simplify=FALSE)
+	
+	# subfunction to populate the matrices with states per character
+		populate <- function(matrix, states){	
+	for(k in 1:length(states)){
+		matrix[,k] <- sample(states[[k]], size=dim(matrix)[1], 			replace=TRUE)
+	}
+	return(matrix)
+	}
+	
+	# populate each random matrix
+	
+	random_matrices <- lapply(random_matrices, populate, states)
 	
 	}
 	
