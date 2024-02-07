@@ -5,30 +5,25 @@
 uncert.to.poly <- function(matrix){
 
 #Make a subfunction to extract uncertainties from parentheses - curly brackets
-	 	curly_extract <- function(x){
-		#x is a single character string with parenthesis and values inside e.g. "{01}"
-		
-		x_extr_curl <- gsub("[\\{\\}]","",regmatches(x, gregexpr("\\{.*?\\}", x))[[1]]) #This line of code extracts values from their curly braces from a single character string
-                 
-		return(x_extr_curl)
-		}
-		
-		scores <- rownames(table(matrix))
-		
-		# Extract uncertainties
-		
-		curly <- unlist(lapply(scores, curly_extract))
-
-			
-			if(length(curly) != 0){ #If uncertainties present:
-				
-				curly_bracket <- parenthesize(curly, "curly")
-				round_bracket <- parenthesize(curly, "round")
-				
-				#Change curly brackets to round brackets
-				matrix[matrix == c(curly_bracket)] <- c(round_bracket)
-				
-				
-			}
-			return(matrix)
-				}
+	 	uncert.to.poly <- function(matrix) {
+  # Define curly_extract function
+  curly_extract <- function(x) {
+    # Find characters within curly braces
+    extracted <- gsub("[{}]", "", x)
+    return(extracted)
+  }
+  
+  scores <- rownames(table(matrix))
+  
+  # Extract uncertainties
+  curly <- unlist(lapply(scores, curly_extract))
+  
+  if (length(curly) != 0) { # If uncertainties present
+    for (i in curly) {
+      round_value <- paste0("(", i, ")")
+      matrix[matrix == paste0("{", i, "}")] <- round_value
+    }
+  }
+  
+  return(matrix)
+}
