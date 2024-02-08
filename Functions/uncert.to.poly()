@@ -1,11 +1,8 @@
-### 2024-02-07
+### 2024-02-08
 
 ### uncert.to.poly: A function to change uncertainties, denoted with curly brackets, to polymorphisms in a phylogenetic matrix
 
-uncert.to.poly <- function(matrix){
-
-#Make a subfunction to extract uncertainties from parentheses - curly brackets
-	 	uncert.to.poly <- function(matrix) {
+uncert.to.poly <- function(matrix) {
   # Define curly_extract function
   curly_extract <- function(x) {
     # Find characters within curly braces
