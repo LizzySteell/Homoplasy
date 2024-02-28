@@ -33,7 +33,7 @@ HER <- function(data, tree, n, maxit=500, minit=50, k=10){
 	
 	# Estimate minimum length trees from the random datasets using parsimony
 	
-	trees <- lapply(random_phydats, pratchet, minit=50, maxit=500)
+	trees <- lapply(random_phydats, pratchet, minit=minit, maxit=maxit)
 	
 	# Calculate lmin for matrix
 	
