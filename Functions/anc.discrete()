@@ -1,0 +1,50 @@
+### 2024-June-14
+
+### Wrapper function for reconstructing the ancestral states for an entire discrete character matrix. This function uses ace() from the 'ape' package.
+### Maximum likelihood is only option for estimating ancestral states for discrete characters. However, model can be specified as either equal rates "ER" or 
+### all rates different "ARD". Marginal likelihood estimation can be selected if marginal = TRUE.
+
+# Arguments:
+# matrix - discrete character matrix
+# tree - phylogenetic tree of the class 'phylo'. Has to be fully bifurcating.
+# model - either "ER" or "ARD"
+# marginal - whether marginal likelihood should be estimated. See details of ace() in 'ape' for details on arguments.
+
+anc.discrete <- function(matrix, tree, model=model, marginal=FALSE){
+
+# Subfunction to reconstruct ancestral state for each character.
+
+anc.discrete.char <- function(char, tree, model=model, marginal=marginal){
+	
+	char <- as.factor(char)
+	
+	# Anc state reconstruction for one character in the matrix
+	anc <- ace(char, tree, type="discrete", method="ML", model=model, marginal=FALSE)
+	
+	liks <- anc$lik.anc
+	
+	anc_nodes <- cbind(liks, c(seq(1:dim(liks)[1])))
+anc_nodes <- anc_nodes[,-c(1:dim(liks)[2])]
+
+# Select the character state with the highest probability for each node (ancestor).
+for(i in 1:length(anc_nodes)){
+	anc_nodes[[i]] <- as.numeric(names(which.max(liks[i,])))
+}
+
+return(anc_nodes)
+
+}
+
+# Reconstruct ancestral states for every character in the matrix.
+nodes <- c()
+for(j in 1:dim(matrix)[2]){
+	
+	nodes[[j]] <- anc.discrete.char(matrix[,j], tree, model=model, marginal=marginal)
+	
+}
+anc_states <- matrix(unlist(nodes), ncol=length(nodes), byrow=FALSE)
+
+# Returns a matrix of ancestral character states for each node, ordered in the same order as specified in the tree (phylo object).
+return(anc_states)
+
+}
