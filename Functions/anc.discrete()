@@ -20,12 +20,12 @@ matrix[matrix == "?"] <- NA
 
 # Subfunction to reconstruct ancestral state for each character.
 
-anc.discrete.char <- function(char, tree, model=model, marginal=marginal){
+anc.discrete.char <- function(char, tree, model=model, marginal=FALSE){
 	
 	char <- as.factor(char)
 	
 	# Anc state reconstruction for one character in the matrix
-	anc <- ace(char, tree, type="discrete", method="ML", model=model, marginal=marginal)
+	anc <- ace(char, tree, type="discrete", method="ML", model=model, marginal=FALSE)
 	
 	liks <- anc$lik.anc
 	
@@ -45,7 +45,7 @@ return(anc_nodes)
 nodes <- c()
 for(j in 1:dim(matrix)[2]){
 	
-	nodes[[j]] <- anc.discrete.char(matrix[,j], tree, model=model, marginal=marginal)
+	nodes[[j]] <- anc.discrete.char(matrix[,j], tree, model=model, marginal=FALSE)
 	
 }
 anc_states <- matrix(unlist(nodes), ncol=length(nodes), byrow=FALSE)
