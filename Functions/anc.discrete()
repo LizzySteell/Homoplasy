@@ -12,6 +12,12 @@
 
 anc.discrete <- function(matrix, tree, model=model, marginal=FALSE){
 
+# Matrix needs to have no polymophisms or uncertainties, and ambiguities need to be specified as NA
+
+matrix <- poly.to.amb(matrix)
+matrix[matrix == "-"] <- "?"
+matrix[matrix == "?"] <- NA
+
 # Subfunction to reconstruct ancestral state for each character.
 
 anc.discrete.char <- function(char, tree, model=model, marginal=marginal){
@@ -19,7 +25,7 @@ anc.discrete.char <- function(char, tree, model=model, marginal=marginal){
 	char <- as.factor(char)
 	
 	# Anc state reconstruction for one character in the matrix
-	anc <- ace(char, tree, type="discrete", method="ML", model=model, marginal=FALSE)
+	anc <- ace(char, tree, type="discrete", method="ML", model=model, marginal=marginal)
 	
 	liks <- anc$lik.anc
 	
