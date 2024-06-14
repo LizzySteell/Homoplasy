@@ -1,0 +1,25 @@
+### 2024-June-14
+
+### Function to remove invariant characters (sites) from a phylogenetic character taxon matrix. Output is a new matrix with columns removed that
+### contained no variance in state. Removed characters are printed.
+
+remove.invar <- function(matrix){
+	
+	# matrix - phylogenetic character matrix
+	suppressWarnings({
+	chars_to_drop <- c()
+for(i in 1:ncol(matrix)){
+	if (sd(matrix[,i], na.rm=TRUE) == 0){
+		chars_to_drop[[i]] <- i
+	}
+	
+}})
+chars_to_drop <- unlist(chars_to_drop)
+print("Following invariant characters removed:") 
+print(chars_to_drop)
+
+matrix_new <- matrix[,-c(chars_to_drop)]
+
+return(matrix_new)
+
+}
