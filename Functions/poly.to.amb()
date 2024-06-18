@@ -26,7 +26,7 @@ poly.to.amb <- function(matrix){
 			if(length(poly) != 0){ #If polies present:
 				
 				## Puts the polies into a vector with brackets
-				round_bracket <- parenthesize(poly, "round")
+				round_bracket <- parenthesize(poly)
 				
 				#Change polies to ambiguities
 				for(i in 1:length(round_bracket)){
