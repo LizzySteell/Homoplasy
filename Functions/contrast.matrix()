@@ -5,10 +5,11 @@
 ####### Contrast matrix builder
 
 # V1.2 is updated so the function can deal with polymorphisms and uncertainties. It also can deal with matrices without any polymorphisms.
+# V2.3 is updated so it no longer depends on the package 'assertive' or 'assertive base' which is not available on cran anymore.
 # Polymorphisms (denoted with round brackets) and uncertainties (denoted with curly brackets) are treated the same.
 # Newest update: changes the contrast matrix into a matrix object, rather than dataframe object, so it is compatible with Phangorn package.
 
-# Dependencies: packages 'assertive.base', 'stringr'
+# Dependencies: packages 'stringr'
 
 ########
 
@@ -20,7 +21,12 @@ contrast.matrix <- function(data) {
   data <- uncert.to.poly(data)
   
   scores <- row.names(table(data)) # Makes a vector of all the possible scores, including ambiguities and polymorphisms
-  
+
+  # Subfunction to add curly brackets
+  parenthesize <- function(x){
+	return(paste0("(",x,")"))	
+  }
+
   # Make a subfunction to extract polymorphisms from parentheses - round brackets
   paren_extract <- function(x) {
     # Find characters within round brackets
