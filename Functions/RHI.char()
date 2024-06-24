@@ -4,7 +4,7 @@
 
 ### V1.0: Enables user to calculate RHI for a distribution of trees instead of a single tree by inputting a multiPhylo object
 
-### Dependencies: packages 'phangorn', 'assertive.base', 'ape', as well as functions from this package.
+### Dependencies: packages 'phangorn', 'ape', as well as functions from this package.
 
 ####### Calculates the Relative Homoplasy Index for a given phylogenetic dataset of discrete characters with a given topology.
 ### Current version cannot calculate RHI for ordered multistate characters.
