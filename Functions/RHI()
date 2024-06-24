@@ -8,7 +8,7 @@
 ###Uses the 'statef' state frequencies function.
 ###Includes specifying ordered characters with a cost matrix and vector of specific ordered characters.
 
-### Dependencies: packages 'phangorn', 'assertive.base', 'ape', as well as functions from this package.
+### Dependencies: packages 'phangorn', 'ape', as well as functions from this package.
 
 ####### Calculates the Relative Homoplasy Index for a given phylogenetic dataset of discrete characters with a given topology.
 
