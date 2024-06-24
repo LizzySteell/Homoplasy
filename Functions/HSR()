@@ -1,4 +1,4 @@
-### 2024-02-06
+### 2024-06-24
 
 #### Homoplasy Slope Ratio 
 
@@ -6,12 +6,12 @@
 
 ### Note: Mendler et al created a function for this, however formatting of that function was not compatible with others in this package.
 
-HSR <- function(data, tree, n, noise=TRUE){
+HSR <- function(data, tree, n, modified=TRUE){
 	
 	# data - matrix of morphological data in phydat format (using morph.phydat)
 	# tree - a phylogenetic tree of class 'phylo'
 	# n - number of permutations of the matrix
-	# noise - refers to whether the 'noise' of an empirical matrix should be retained for the randomised matrices, which would include polymorphic states and missing data. If set to FALSE, the randomised matrices are generated 'without noise' so that they comprise only the actual character states for each character (no missing data, no polymorphisms).
+	# modified - modified = TRUE indicates that the modified homoplasy slope ratio (HSRm; refer to manuscript) should be calculated or not. It refers to whether the 'noise' of an empirical matrix should be retained for the randomised matrices, which would include polymorphic states and missing data. If set to FALSE, the randomised matrices are generated 'without noise' so that they comprise only the actual character states for each character (no missing data, no polymorphisms), and are calculated in the way that the original HSR metric was designed for.
 	
 	# Calculate number of taxa
 	t <- length(tree$tip.label)
