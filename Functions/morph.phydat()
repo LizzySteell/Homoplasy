@@ -3,7 +3,7 @@
 ### morph.phydat: PhyDat object wrapper function V1
 
 # To make phyDat objects (from Phangorn package) for morphological datasets. Includes changing gaps to ambiguities, changing uncertainties to polymorphisms, and creating a contrast matrix.
-# Dependencies: packages 'phangorn', 'assertive.base'
+# Dependencies: packages 'phangorn'
 
 # Polymorphisms and uncertainties are treated as the same here.
 
