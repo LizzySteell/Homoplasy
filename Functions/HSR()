@@ -31,14 +31,14 @@ HSR <- function(data, tree, n, modified=TRUE){
 	# Change format of phydat to matrix
 	matrix <- t(as.data.frame(data))
 	
-	if(noise == TRUE){
+	if(modified == TRUE){
 	
 	# Generate random data with same number of taxa and characters. Each character state has equal probabilities, and each scoring (character state for specific character and taxon) is independent from any other scoring. This version of the function uses the exact scorings in the matrix, including polymorphisms and missing data.
 	random_matrices <- replicate(n, apply(matrix, 2, sample, replace=TRUE), simplify=FALSE)
 	
 	}else{
 		
-		#If noise=FALSE then function excludes missing data and other non-state scorings (polymorphisms) (hereby called 'noise')
+		#If modified=FALSE then function excludes missing data and other non-state scorings (polymorphisms) (hereby called 'noise')
 	
 	#Get states per character
 	states <- apply(matrix, 2, get.states)
@@ -83,3 +83,5 @@ HSR <- function(data, tree, n, modified=TRUE){
 	
 	
 }
+
+################
