@@ -3,6 +3,7 @@
 ### Wrapper function for reconstructing the ancestral states for an entire discrete character matrix. This function uses ace() from the 'ape' package.
 ### Maximum likelihood is only option for estimating ancestral states for discrete characters. However, model can be specified as either equal rates "ER" or 
 ### all rates different "ARD". Marginal likelihood estimation can be selected if marginal = TRUE.
+### IMPORTANT: currently "ARD" is not working, function needs editing and experimenting with.
 
 # Arguments:
 # matrix - discrete character matrix
