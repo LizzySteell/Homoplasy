@@ -1,4 +1,4 @@
-### 2024-June-14
+### 2024-Aug-14
 
 ### Wrapper function for reconstructing the ancestral states for an entire discrete character matrix. This function uses ace() from the 'ape' package.
 ### Maximum likelihood is only option for estimating ancestral states for discrete characters. However, model can be specified as either equal rates "ER" or 
@@ -49,6 +49,8 @@ for(j in 1:dim(matrix)[2]){
 	
 }
 anc_states <- matrix(unlist(nodes), ncol=length(nodes), byrow=FALSE)
+row.names(anc_states) <- as.character(c(1:(length(tree$tip.label)-1)+length(tree$tip.label)))
+
 
 # Returns a matrix of ancestral character states for each node, ordered in the same order as specified in the tree (phylo object).
 return(anc_states)
