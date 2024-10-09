@@ -41,7 +41,7 @@ HSR <- function(data, tree, n, modified=TRUE){
 		#If modified=FALSE then function excludes missing data and other non-state scorings (polymorphisms) (hereby called 'noise')
 	
 	#Get states per character
-	states <- apply(matrix, 2, get.states)
+	states <- apply(matrix, 2, get.states, simplify=FALSE)
 	
 	# Generate random matrices
 	
