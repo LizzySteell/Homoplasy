@@ -1,9 +1,9 @@
 # Homoplasy
-R code for the Relative Homoplasy Index, a metric for quantifying homoplasy in discrete phylogenetic datasets
+R code for the Relative Homoplasy Index, a method for quantifying homoplasy in discrete phylogenetic datasets
 
 Preprint published at BioRxiv: doi: https://doi.org/10.1101/2023.10.10.561677
 
-Relative Homoplasy Index: A New Cross-comparable Metric for Quantifying Homoplasy in Discrete Character Datasets
+Relative Homoplasy Index: A New Cross-comparable Index for Quantifying Homoplasy in Discrete Character Datasets
 https://doi.org/10.5061/dryad.34tmpg4rp
 
 This dataset includes all nexus, phylip and .R files to reproduce the analyses included in 'Relative Homoplasy Index: A New Cross-comparable Metric for Quantifying Homoplasy in Discrete Character Datasets'.
@@ -120,5 +120,3 @@ Natural Environment Research Council, Award: NE/S007164/1
 Natural Environment Research Council, Award: MR/S032177/1
 
 Swedish Research Council Starting Grant Within Natural and Engineering Sciences, Award: ÄR-NT 2020-03515
-
-Citing this dataset (from Dryad): Steell, Elizabeth; Hsiang, Allison; Field, Daniel (Forthcoming 2023). Relative Homoplasy Index: A new cross-comparable metric for quantifying homoplasy in discrete character datasets [Dataset]. Dryad. https://doi.org/10.5061/dryad.34tmpg4rp
