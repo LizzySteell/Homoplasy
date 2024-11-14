@@ -1,25 +1,46 @@
-### 2024-June-14
+### 2024-Nov-14
 
 ### Function to remove invariant characters (sites) from a phylogenetic character taxon matrix. Output is a new matrix with columns removed that
-### contained no variance in state. Removed characters are printed.
+### contain no variance in state. Removed characters are printed. Updated version (November 2024) ensures that characters with only ambiguities
+### or characters with ambiguities plus one state scoring are also removed. May need polymorphisms changing to ambiguities using poly.to.amb().
 
 remove.invar <- function(matrix){
 	
 	# matrix - phylogenetic character matrix
+	
+	# to identify characters with only '?' as a value, replace '?' with an unlikely number
+	
+	matrix[matrix == '?'] <- '99'
+	
 	suppressWarnings({
 	chars_to_drop <- c()
 for(i in 1:ncol(matrix)){
-	if (sd(matrix[,i], na.rm=TRUE) == 0){
+	if (isTRUE(sd(matrix[,i], na.rm=TRUE) == 0)){
 		chars_to_drop[[i]] <- i
 	}
 	
 }})
-chars_to_drop <- unlist(chars_to_drop)
-print("Following invariant characters removed:") 
-print(chars_to_drop)
 
+matrix[matrix == '99'] <- '?' # Changing them back
+
+matrix_ <- matrix
+
+# Do it again so it finds characters with only one state + ambiguities
+
+	suppressWarnings({
+	#chars_to_drop_ <- c()
+for(j in 1:ncol(matrix_)){
+	if(isTRUE(sd(matrix_[,j], na.rm=TRUE) == 0)){
+		chars_to_drop[[j]] <- j
+	}
+	
+}})
+
+chars_to_drop <- unlist(chars_to_drop)
+#chars_to_drop_ <- unlist(chars_to_drop_)
 matrix_new <- matrix[,-c(chars_to_drop)]
 
-return(matrix_new)
+print("Following invariant characters removed:") 
+print(c(chars_to_drop))
 
-}
+return(matrix_new) }
