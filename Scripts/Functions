@@ -1,0 +1,862 @@
+### 2024-Jun-24
+
+### Functions script for the manuscript 'Revealing patterns of homoplasy in discrete phylogenetic datasets with a cross comparable metric’.
+
+# Notes: Several functions are included here that are necessary for the running of key custom functions such as RHI(), HSR() and HER(). Copy and paste entire document before running analyses.
+
+# Dependencies:
+
+# 'ape' Paradis E, Schliep K (2019). “ape 5.0: an environment for modern phylogenetics and evolutionary analyses in R.” _Bioinformatics_, *35*, 526-528. doi:10.1093/bioinformatics/bty633 <https://doi.org/10.1093/bioinformatics/bty633>.
+
+# 'geiger' Pennell, M. W., J. M. Eastman, G. J. Slater, J. W. Brown, J. C. Uyeda, R. G. FitzJohn, M. E. Alfaro, and L. J. Harmon {2014} geiger v2.0: an expanded suite of methods for fitting macroevolutionary models to phylogenetic trees. Bioinformatics, 30, 2216-2218.
+
+# 'janitor' Firke S (2023). _janitor: Simple Tools for Examining and Cleaning Dirty Data_. R package version 2.2.0, <https://CRAN.R-project.org/package=janitor>.
+
+# 'StatMatch' D'Orazio M (2024). _StatMatch: Statistical Matching or Data Fusion_. R package version 1.4.2, <https://CRAN.R-project.org/package=StatMatch>.
+
+# 'stringr' Wickham H (2023). _stringr: Simple, Consistent Wrappers for Common String Operations_. R package version 1.5.1, <https://CRAN.R-project.org/package=stringr>.
+
+# 'tictoc' Izrailev S (2024). _tictoc: Functions for Timing R Scripts, as Well as Implementations of "Stack" and "StackList" Structures_. R package version 1.2.1, <https://CRAN.R-project.org/package=tictoc>.
+
+# 'TreeTools' Smith (2019). TreeTools: create, modify and analyse phylogenetic trees. Comprehensive R Archive Network. doi: 10.5281/zenodo.3522725
+
+# 'phangorn' Schliep K.P. 2011. phangorn: phylogenetic analysis in R. Bioinformatics, 27(4) 592-593; Schliep, K., Potts, A. J., Morrison, D. A., Grimm, G. W. (2017), Intertwining phylogenetic trees and networks. Methods in Ecology and Evolution, 8: 1212--1220. doi: 10.1111/2041-210X.12760
+
+# 'phytools' Revell, L. J. (2024) phytools 2.0: an updated R ecosystem for phylogenetic comparative methods (and other things). PeerJ, 12, e16505.
+
+####
+
+# Functions included here:
+
+# HER()
+# HSR()
+# RHI()
+# RHI.char()
+# RHI.multi()
+# contrast.matrix()
+# cost.matrix()
+# get.states()
+# morph.phydat()
+# parenthesize()
+# poly.to.amb()
+# statef()
+# subset.matrix()
+# subset.trees()
+# uncert.to.poly()
+
+### See 'Usage notes for custom functions' in Supporting Information.
+
+
+################
+
+##### HOMOPLASY EXCESS RATIO
+
+### Reference: Archie JW. Homoplasy excess ratios: new indices for measuring levels of homoplasy in phylogenetic systematics and a critique of the consistency index. Systematic Zoology. 1989 Sep 1;38(3):253-69.
+
+### Function to calculate the HER (homplasy excess ratio). Originally the phylogenetic tree aspect was estimated in an inference software (e.g. PAUP) but here it is estimated with 'phangorn'. 
+
+HER <- function(data, tree, n, maxit=500, minit=50, k=10){
+	
+	# data - matrix of morphological data in phydat format (using morph.phydat)
+	# tree - a phylogenetic tree of class 'phylo'
+	# n - number of permutations of the matrix
+	# maxit - max number of iterations in parsimony ratchet
+	# minit - min number of iterations in parsimony ratchet
+	# k - max number of rounds before ratchet is stopped when there is no improvement
+
+	# Change phydat into standard matrix
+	matrix <- t(as.data.frame(data))
+
+	# First permute the character scorings across taxa for each character. Creates a list of n random matrices.
+	
+	random_matrices <- replicate(n, apply(matrix, 2, sample, replace=FALSE), simplify=FALSE)
+	
+	# Add row names
+	rows <- c(tree$tip.label)
+	
+	for(i in 1:length(random_matrices)){
+		row.names(random_matrices[[i]]) <- rows
+	}
+	
+	# Create morphological phydats for each random matrix
+	
+	random_phydats <- lapply(random_matrices, morph.phydat)
+	
+	# Estimate minimum length trees from the random datasets using parsimony
+	
+	trees <- lapply(random_phydats, pratchet, minit=minit, maxit=maxit)
+	
+	# Calculate lmin for matrix
+	
+	states <- get.states(matrix)
+	 
+	#State frequencies
+	f <- statef(matrix)
+
+	#lmin is theoretical minimum tree length
+	lmin <- c()
+
+	for(l in 1:length(f)){
+		lmin[[l]] <- ((as.numeric(states)[l+1]) * (f[l]*dim(matrix)[2]))
+	}
+	
+	#Exclude NAs in case multistate characters miss states (e.g. character that has max 9 states actually has 8 states)
+	
+	lmin <- na.omit(unlist(lmin))
+	
+	lmin <- sum(as.numeric(lmin)) #Sum each value to get the minimum number of steps for the matrix.
+
+	# Get parsimony score for input tree and real matrix
+	
+	L <- parsimony(tree, data)
+
+	# Get parsimony score for each random tree
+	
+	MeanNS <- mean(mapply(parsimony, trees, random_phydats))
+	
+	# Calculate HER
+	
+	HER <- 1-((L-lmin)/(MeanNS-lmin))
+	
+	return(HER)
+	
+}
+
+################
+
+### 2024-06-24
+
+#### Homoplasy Slope Ratio 
+
+### Reference: Meier R, Kores P, Darwin S. Homoplasy slope ratio: a better measurement of observed homoplasy in cladistic analyses. Systematic Biology. 1991 Mar 1;40(1):74-88.
+
+### Note: Mendler et al created a function for this, however formatting of that function was not compatible with others in this package.
+
+HSR <- function(data, tree, n, modified=TRUE){
+	
+	# data - matrix of morphological data in phydat format (using morph.phydat)
+	# tree - a phylogenetic tree of class 'phylo'
+	# n - number of permutations of the matrix
+	# modified - modified = TRUE indicates that the modified homoplasy slope ratio (HSRm; refer to manuscript) should be calculated or not. It refers to whether the 'noise' of an empirical matrix should be retained for the randomised matrices, which would include polymorphic states and missing data. If set to FALSE, the randomised matrices are generated 'without noise' so that they comprise only the actual character states for each character (no missing data, no polymorphisms), and are calculated in the way that the original HSR metric was designed for.
+	
+	# Calculate number of taxa
+	t <- length(tree$tip.label)
+	
+	# Subfunction to do calculation for extra steps (necessary for later):
+	extra_steps <- function(data, tree){
+		(1/CI(tree, data)) - 1
+	}
+	
+	# Calculate extra steps (ES) for empirical data
+	ES <- extra_steps(data, tree)
+	
+	# Calculate homoplasy slope for empirical data
+	HS <- ES/(t-3)
+	
+	
+	# Change format of phydat to matrix
+	matrix <- t(as.data.frame(data))
+	
+	if(modified == TRUE){
+	
+	# Generate random data with same number of taxa and characters. Each character state has equal probabilities, and each scoring (character state for specific character and taxon) is independent from any other scoring. This version of the function uses the exact scorings in the matrix, including polymorphisms and missing data.
+	random_matrices <- replicate(n, apply(matrix, 2, sample, replace=TRUE), simplify=FALSE)
+	
+	}else{
+		
+		#If modified=FALSE then function excludes missing data and other non-state scorings (polymorphisms) (hereby called 'noise')
+	
+	#Get states per character
+	states <- apply(matrix, 2, get.states, simplify=FALSE)
+	
+	# Generate random matrices
+	
+	random_matrices <- replicate(n, matrix(nrow=dim(matrix)[1], ncol=dim(matrix)[2]), simplify=FALSE)
+	
+	# subfunction to populate the matrices with states per character
+		populate <- function(matrix, states){	
+	for(k in 1:length(states)){
+		matrix[,k] <- sample(states[[k]], size=dim(matrix)[1], 			replace=TRUE)
+	}
+	return(matrix)
+	}
+	
+	# populate each random matrix
+	
+	random_matrices <- lapply(random_matrices, populate, states)
+	
+	}
+	
+	# Add row names
+	rows <- c(tree$tip.label)
+	for(i in 1:length(random_matrices)){
+		row.names(random_matrices[[i]]) <- rows
+	}
+	
+	# Create morphological phydats for each random matrix
+	random_phydats <- lapply(random_matrices, morph.phydat)
+	
+	# Calculate ES for random matrices
+	ES_random <- unlist(lapply(random_phydats, extra_steps, tree))
+	
+	# Calculate homoplasy slope for random datasets and calculate mean
+	HS_random_mean <- mean(ES_random/(t-3))
+	
+	# Calculate homoplasy slope ratio
+	hsr <- HS/HS_random_mean
+	
+	return(hsr)
+	
+	
+}
+
+################
+
+####### 2024-01-29
+
+##### RHI FUNCTION #####
+
+### V1.0: Adding code that uses the wrapper function 'morph.phydat' that prepares a phyDat object using a morphological dataset.
+###Changes uncertainties to polymorphisms, as well as gaps to ambiguities.
+###Creates a contrast matrix so that contrast is no longer a separate argument.
+###Uses the 'statef' state frequencies function.
+###Includes specifying ordered characters with a cost matrix and vector of specific ordered characters.
+
+### Dependencies: packages 'phangorn', 'ape', as well as functions from this package.
+
+####### Calculates the Relative Homoplasy Index for a given phylogenetic dataset of discrete characters with a given topology.
+
+
+#RHI function including ordered characters
+
+RHI <- function(data, tree, n, ord=NULL, cost=NULL){ 
+	
+	### 
+	
+	#data - a morphological phydat object generated using morph.phydat().
+	#tree - a phylogenetic tree (object of class phylo)
+	#n - number of randomisations
+	#ord - a vector containing numbers for the specific ordered characters in the dataset
+	#cost - a cost matrix specifing the cost per character state change (transition)
+
+	#Subfunction to randomise tips and keep topology
+	rtips <- function(tree){
+		new_tips <- sample(tree$tip.label)
+		Rtree <- tree
+	Rtree$tip.label <- new_tips
+	return(Rtree)
+	}
+	#Replicates tip randomising n times and creates a list of trees
+	random_trees <- replicate(n, rtips(tree), simplify=FALSE)
+	
+	### If no ordered characters:
+	
+	if(is.null(c(ord, cost))) {
+	
+	null_tlengths <- unlist(lapply(random_trees, parsimony, data)) #Calculates the tree length for the matrix when each randomised topology is applied, and creates a vector of n parsimony scores. Note: the empirical dataset stays the same and is not altered.
+	
+	} else{
+	
+	### If ordered characters are specified:
+	
+	#calculate parsimony score for each random tree with the ordered character subset
+	null_tlengths_ord <- unlist(lapply(random_trees, parsimony, data[,ord], cost=cost))
+	
+	#calulcate parsimony score for each random tree with the unordered character subset
+	null_tlengths_no_ord <- unlist(lapply(random_trees, parsimony, data[,-ord]))
+	
+	#add together the values for each random tree
+	null_tlengths <- null_tlengths_ord + null_tlengths_no_ord 
+	
+	}
+	
+	Lnull <- quantile(null_tlengths, prob=0.5) #Calculates the median tree length for the randomised 	trees.
+	Lnull5 <- quantile(null_tlengths, prob=0.05)
+	Lnull95 <- quantile(null_tlengths, prob=0.95) 
+	
+	#Calculate frequency of each character type (i.e., number of two-state characters, number of three-state characters etc)
+	
+	matrix <- t(as.data.frame(data))
+	
+	states <- get.states(matrix)
+	 
+	#State frequencies
+	f <- statef(matrix)
+
+	#lmin is theoretical minimum tree length
+	lmin <- c()
+
+	for(l in 1:length(f)){
+		lmin[[l]] <- ((as.numeric(states)[l+1]) * (f[l]*dim(matrix)[2]))
+	}
+	
+	#Exclude NAs in case multistate characters miss states (e.g. character that has max 9 states actually has 8 states)
+	
+	lmin <- na.omit(unlist(lmin))
+	
+	lmin <- sum(as.numeric(lmin)) #Sum each value to get the minimum number of steps for the matrix.
+	
+	#Depending on whether ordered characters are specified or not, value of L will change:
+	
+	if(is.null(ord)){
+	L <- parsimony(tree, data) #Calculates the parsimony score of the matrix with the supplied tree.
+	} else {
+		
+		L1 <- parsimony(tree, data[,ord], cost=cost)
+		L2 <- parsimony(tree, data[,-ord])
+		L = L1 + L2
+	}
+	
+	RHI_low <- (L-lmin)/(Lnull95-lmin) #Calculates the lower bound of the 95% CI.
+	RHI <- (L-lmin)/(Lnull-lmin) #Calculates the RHI for the median null tree length (Lnull).
+	RHI_high <- (L-lmin)/(Lnull5-lmin) #Calculates the RHI for the upper bound of the 95% CI
+	
+	
+	names(RHI_low) <- "5% quantile"
+	names(RHI) <- "RHI"
+	names(RHI_high) <- "95% quantile"
+	names(L) <- "Tree Length" #Prints the empirical tree length.
+	names(lmin) <- "Lmin"
+	
+	return(c(RHI_low, RHI, RHI_high, L, lmin))
+	
+	}
+	
+################
+
+####### 2024-01-31
+
+##### RHI FUNCTION TO CALCULATE PER CHARACTER RHI VALUES#####
+
+### V1.0: Enables user to calculate RHI for a distribution of trees instead of a single tree by inputting a multiPhylo object
+
+### Dependencies: packages 'phangorn', 'ape', as well as functions from this package.
+
+####### Calculates the Relative Homoplasy Index for a given phylogenetic dataset of discrete characters with a given topology.
+### Current version cannot calculate RHI for ordered multistate characters.
+
+
+RHI.char <- function(data, tree, n){ 
+	
+	### 
+	
+	#data - a morphological phydat object generated using morph.phydat().
+	#tree - a phylogenetic tree (object of class phylo)
+	#n - number of randomisations
+
+	
+	# Get number of characters from dataset
+	nchar <- dim(as.matrix(data))[2]
+	
+	#Put each character in phydat format into a list
+	char_list <- c()
+	for(i in 1:nchar){
+		char_list[[i]] <- data[,i]
+	}
+	
+	#lmin for individual characters is total number states -1 
+
+	lmin_char <- length(get.states(matrix[,1])) - 1
+	
+	#Convert phydat to matrix
+	matrix <- t(as.data.frame(data))
+	
+	#Create a list of lmins per chatacter
+	lmin_chars <- c()
+	for(k in 1:length(char_list)){
+		lmin_chars[[k]] <- length(get.states(matrix[,k])) - 1
+	}
+	
+	lmin_chars <- unlist(lmin_chars)
+	
+	#Caluculate Lnull as normal
+	
+	#Subfunction to randomise tips and keep topology
+	rtips <- function(tree){
+		new_tips <- sample(tree$tip.label)
+		Rtree <- tree
+	Rtree$tip.label <- new_tips
+	return(Rtree)
+	}
+	#Replicates tip randomising n times and creates a list of trees
+	random_trees <- replicate(n, rtips(tree), simplify=FALSE)
+	
+	### For now, just for unordered characters - otherwise cost matrix has to be calculated per character
+		
+		null_tlengths_char <- c()
+		for(m in 1:length(char_list)){
+	
+	null_tlengths_char[[m]] <- unlist(lapply(random_trees, parsimony, char_list[[m]])) 
+	
+		}
+	
+	# Calculate median Lnull per character
+	
+	Lnull_char_med <- as.numeric(unlist(lapply(null_tlengths_char, quantile, prob=0.5)))
+	
+	# Calculate character length for each character
+	
+	char_lengths <- parsimony(tree, data, site='site')
+	
+	
+	# Calculate RHI per character from median character length.
+	
+		RHI_char <- (char_lengths-lmin_chars)/(Lnull_char_med-lmin_chars)
+		
+		
+		return(RHI_char)
+	
+	}
+
+################
+
+####### 2024-01-30
+
+##### RHI FUNCTION INCORPORATING MUTLIPHYLO OBJECT#####
+
+### V1.0: Enables user to calculate RHI for a distribution of trees instead of a single tree by inputting a multiPhylo object
+
+### Dependencies: packages 'phangorn', 'ape', as well as functions from this package.
+
+####### Calculates the Relative Homoplasy Index for a given phylogenetic dataset of discrete characters with a given topology.
+
+
+#RHI function including ordered characters
+
+RHI.multi <- function(data, trees, n, ord=NULL, cost=NULL){ 
+	
+	### 
+	
+	#data - a morphological phydat object generated using morph.phydat().
+	#trees - a list of phylogenetic trees (object of class multiPhylo)
+	#n - number of randomisations
+	#ord - a vector containing numbers for the specific ordered characters in the dataset
+	#cost - a cost matrix specifing the cost per character state change (transition)
+	
+	
+	### Replicate the phydat object to match the number of trees in the multiPhylo
+	
+	data_list <- replicate(length(trees), list(data))
+	
+	# Use mapply() to apply RHI function to replicated phydats and multiphylo
+	
+	RHIs <- mapply(RHI, data_list, trees, n)
+	
+	# Calculate the median, 0.05 and 0.95 quantiles
+	
+	RHIs_med <- quantile(RHIs[2,], prob=0.5)
+	RHIs_05 <- quantile(RHIs[2,], prob=0.05)
+	RHIs_95 <- quantile(RHIs[2,], prob=0.95)
+	
+	# Calculate median tree length
+	
+	L_med <- quantile(RHIs[4,], prob=0.5)
+	
+	
+	names(RHIs_05) <- "5% quantile"
+	names(RHIs_med) <- "median RHI"
+	names(RHIs_95) <- "95% quantile"
+	names(L_med) <- "median Tree Length" #Prints the empirical tree length.
+
+	
+	print(c(RHIs_05, RHIs_med, RHIs_95, L_med))
+	
+	}
+	
+
+################
+
+####### 2024-06-18
+
+##### CONTRAST MATRIX FUNCTION #####
+
+####### Contrast matrix builder
+
+# V1.2 is updated so the function can deal with polymorphisms and uncertainties. It also can deal with matrices without any polymorphisms.
+# V2.3 is updated so it no longer depends on the package 'assertive' or 'assertive base' which is not available on cran anymore.
+# Polymorphisms (denoted with round brackets) and uncertainties (denoted with curly brackets) are treated the same.
+# Newest update: changes the contrast matrix into a matrix object, rather than dataframe object, so it is compatible with Phangorn package.
+
+# Dependencies: packages 'stringr'
+
+########
+
+contrast.matrix <- function(data) {
+  # Change all '-' values to '?'
+  data[data == '-'] <- '?'
+  
+  # Change all uncertainties to polymorphisms to remove curly brackets and only work with round brackets
+  data <- uncert.to.poly(data)
+  
+  scores <- row.names(table(data)) # Makes a vector of all the possible scores, including ambiguities and polymorphisms
+
+  # Subfunction to add curly brackets
+  parenthesize <- function(x){
+	return(paste0("(",x,")"))	
+  }
+
+  # Make a subfunction to extract polymorphisms from parentheses - round brackets
+  paren_extract <- function(x) {
+    # Find characters within round brackets
+    extracted <- gsub("[()]", "", x)
+    return(extracted)
+  }
+  
+  # Extract polymorphisms
+  polys <- unlist(lapply(scores, paren_extract))
+  
+  # If there are polymorphisms present:
+  if(length(polys) != 0) {
+    # Extract polymorphisms with brackets
+    polys_brackets <- unlist(lapply(polys, parenthesize))
+    
+    # Make a vector of the possible states excluding ambiguities and polymorphisms
+    states <- scores[!scores %in% c("?", polys_brackets)]
+  } else { 
+    # If no polymorphisms/uncertainties
+    states <- scores[!scores %in% c("?")] # Makes a vector of the possible states - '0', '1', '2' etc. Excludes ambiguities.
+  }
+  
+  # Make the contrast matrix template based on the dimensions of the states and scores.
+  matrix <- matrix(nrow = length(scores), ncol = length(states), dimnames = list(scores, states))
+  matrix <- as.data.frame(matrix)
+  rownames(matrix) <- scores
+  colnames(matrix) <- states
+  
+  for (i in 1:length(scores)) {
+    # Fill in the matrix for the state values
+    for (j in 1:length(states)) {
+      if (scores[i] == states[j]) {
+        matrix[i, j] <- 1
+      } else {
+        matrix[i, j] <- 0
+      }
+    }
+    
+    # Fill in the matrix for the ambiguity values
+    for (k in 1:length(scores)) {
+      if (scores[k] == "?") {
+        matrix[k,] <- 1 # This puts a '1' for every column in the ambiguity row ("?")
+      }
+      
+      if (length(polys) != 0) {
+        # Fill in the matrix for the polymorphism values
+        for (k in 1:length(polys)) {
+          poly_ind <- strsplit(polys[k], "")[[1]] # Split the polymorphism values into separate parts
+          if (scores[i] == polys_brackets[k]) {
+            for (o in 1:length(poly_ind)) {
+              matrix[polys_brackets[k], poly_ind[o]] <- 1
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  matrix <- as.matrix(matrix)
+  return(matrix)
+}
+
+################
+
+### 2024-01-29
+
+# Cost matrix function
+
+### This function builds a standard cost matrix for ordered morphological characters whereby one character state change between two character states that are adjacent in value 'costs' one step, but a change between states that are sequentially higher or lower in value cost an increasing number of steps.
+
+cost.matrix <- function(data)
+
+# data - Phylogenetic matrix (in simple matrix array format) where row names are taxa and columns are characters. Gaps ('-') are treated as ambiguities ('?')
+
+	{
+		#Change all '-' values to '?'
+	 	data[data == '-'] <- '?'
+	 	
+	 	#get character states
+	 	
+	 	states <- get.states(data)
+	 	
+	 	matrix <- matrix(nrow=length(states), ncol=length(states))
+	 	
+	 	dimnames(matrix) <- list(states, states)
+	 	
+	 	#fill in matrix
+	 	
+	 	for(i in 1:length(states)){
+	 		
+	 		for(j in 1:length(matrix[i,])){
+	 			
+	 			matrix[i,][j] <- j-i
+	 		}
+	 	}
+	 	
+	 	#Make values all positive
+	 	
+	 	matrix <- abs(matrix)
+	 	
+	}
+	
+################
+
+### 2024-02-08
+
+### Function 'get.states()'
+
+### To get charater states from a phylogenetic matrix. Ignores polymorphisms (round brackets only), gaps and '?'
+
+
+get.states <- function(data) {
+	
+	#data - matrix array of phylogenetic dataset
+		
+		#Change gaps to ?
+		data[data == "-"] <- "?"
+		
+	scores <- row.names(table(data)) #Makes a vector of all the possible scores, including ambiguities and polymorphisms
+	 	
+	 	#Make a subfunction to extract polymorphisms from parentheses - round brackets
+	 	paren_extract <- function(x) {
+   # Find characters within round brackets
+     extracted <- gsub("[()]", "", x)
+    return(extracted)}
+		
+		#Make vectors of polymorphisms - with and without round brackets
+			 #This has no brackets
+			polys <- unlist(lapply(scores, paren_extract))
+			
+			if(length(polys) != 0){
+			
+			 #This has brackets
+			polys_brackets <- unlist(lapply(polys, parenthesize))
+			
+		states <- scores[!scores %in% c("?", polys_brackets)] #Makes a vector of the possible states - '0', '1', '2' etc. Excludes ambiguities and polymorphisms.
+		
+			} else { #If no polymorphisms/uncertainties
+			
+			states <- scores[!scores %in% c("?")] #Makes a vector of the possible states - '0', '1', '2' etc. Excludes ambiguities.
+		}
+		
+		return(states) }
+		
+################
+
+### 2023-11-08
+
+### morph.phydat: PhyDat object wrapper function V1
+
+# To make phyDat objects (from Phangorn package) for morphological datasets. Includes changing gaps to ambiguities, changing uncertainties to polymorphisms, and creating a contrast matrix.
+# Dependencies: packages 'phangorn', 'assertive.base'
+
+# Polymorphisms and uncertainties are treated as the same here.
+
+# Uses the contrast.matrix() and uncert.to.poly() functions - see functions documentation.
+
+
+morph.phydat <- function(matrix){
+	
+	# Matrix of class matrix array which a phylogenetic dataset; taxa as rows, characters as columns.
+	# Polymorphisms or uncertainties indicated with round brackets only
+	
+	# Create contrast matrix
+	contrast <- contrast.matrix(matrix)
+	
+	# Remove gaps
+	matrix[matrix == "-"] <- "?"
+	
+	# Change uncertainties into polymorphisms, if any
+	
+	matrix <- uncert.to.poly(matrix)
+	
+	# Create phyDat object
+	
+	phydat <- phyDat(matrix, type="USER", contrast=contrast)
+	
+	return(phydat)
+	
+}
+
+################
+
+### 2024-06-18
+
+### Small function to add curly brackets to an object in R and output a string. E.g. x = '01', returns '(01)'.
+# Required for several functions including contrast.matrix()
+# Replaces dependency on assertive or assertive.base package which are no longer available for recent versions of R.
+
+
+parenthesize <- function(x){
+	
+	return(paste0("(",x,")"))
+	
+}
+
+################
+
+### 2024-02-08
+
+### poly.to.amb(): A function to change polymorphisms to ambiguities '?' in a matrix
+
+poly.to.amb <- function(matrix){
+	
+	# matrix: Phylogenetic character matrix of class matrix array
+	
+	# First change uncertainties (curly brackets) to polymorphisms
+	
+	matrix <- uncert.to.poly(matrix)
+	
+#Make a subfunction to extract polymorphisms from parentheses - round brackets
+	 	paren_extract <- function(x) {
+    # Find characters within round brackets
+     extracted <- gsub("[()]", "", x)
+    return(extracted)}
+		
+		scores <- rownames(table(matrix))
+		
+		# Extract polies
+		
+		poly <- unlist(lapply(scores, paren_extract))
+
+			
+			if(length(poly) != 0){ #If polies present:
+				
+				## Puts the polies into a vector with brackets
+				round_bracket <- parenthesize(poly)
+				
+				#Change polies to ambiguities
+				for(i in 1:length(round_bracket)){
+					matrix[matrix == round_bracket[i]] <- "?"
+				}
+				
+				
+				
+			}
+			return(matrix)
+				}
+				
+################
+
+##### 2024-02-08
+
+### STATE FREQUENCY FUNCTION v3
+######
+### Calculate state frequencies in a matrix
+
+
+statef <- function(data){
+	#data - matrix array character taxon matrix
+	
+	data[data == "-"] <- "?" # Changes gaps to ambiguities
+	data <- uncert.to.poly(data) # Changes curly brackets to round brackets
+	
+	scores <- row.names(table(data)) #Makes a vector of all the possible scores, including ambiguities and polymorphisms (if present)
+	 	
+		
+		 # Make a subfunction to extract polymorphisms from parentheses - round brackets
+  paren_extract <- function(x) {
+    # Find characters within round brackets
+    extracted <- gsub("[()]", "", x)
+    return(extracted)}
+		
+		#Make vectors of polymorphisms - with and without round brackets
+			polys <- unlist(lapply(scores, paren_extract)) #This has no brackets
+		
+			if(length(polys) == 0){
+			
+			states_ <- c()
+			for(j in 1:ncol(data)){
+			states_[[j]] <- length(unique(data[,j])[! unique(data[,j]) %in% c("?")])
+	 		#Excludes ambiguities if polymorphisms not present
+	 		}
+	 		
+	 		
+	 		} else {
+	 			
+	 		polys_brackets <- unlist(lapply(polys, parenthesize))
+	 			
+	states_ <- c()
+		for(n in 1:ncol(data)){
+		states_[[n]] <- length(unique(data[,n])[! unique(data[,n]) %in% c("?", polys_brackets)]) #Excludes ambiguities and polymorphisms.
+		 }
+		
+		
+}
+
+state_freq <- c()
+for(l in 1:length(sort(unique(unlist(states_))))){ #For each frequency of each character type (as in two-state, three-state etc)
+	 
+				state_freq[[l]] <- 	table(sort(unlist(states_)))[l] 
+					
+					 }
+					 states <- unlist(state_freq)
+					 states_f <- states/sum(states)
+					return(states_f)
+					}		
+					
+					
+################
+
+# 2023-10-08
+
+### Function for subsetting matrices based on a list of subset trees
+
+subset.matrix <- function(trees, matrix) {
+#trees - list of subset trees (object class phylo) from the 'subset.trees()' function
+#matrix - character taxon matrix to be subsetted
+	n <- length(trees)
+	tips <- TipLabels(trees)
+	datasets <- list()
+		for (i in 1:n) {
+		dataset <- matrix[c(unlist(tips[i])),]
+		datasets[[i]] <- dataset
+		}
+	return(datasets)
+	}
+#Returns a list of subset matrices for each subsampled tree supplied.
+
+################
+
+##### 2023-10-08
+
+### SUBSET TREES FUNCTION
+
+### Subsetting trees - randomly samples n tips from a given topology
+subset.trees <- function(n, tree, ntaxa) {
+	#n - number of subsets to be made
+	#tree - tree (object of class phylo) to be subsetted
+	#ntaxa - number of tips to retain in the subsetted trees
+
+	trees <- replicate(n, drop.tip(tree,sample(tree$tip.label)[1:(length(tree$tip.label)-ntaxa)]), simplify=FALSE)
+	return(trees)
+	}
+	
+################
+
+### 2024-02-08
+
+### uncert.to.poly: A function to change uncertainties, denoted with curly brackets, to polymorphisms in a phylogenetic matrix
+
+uncert.to.poly <- function(matrix) {
+  # Define curly_extract function
+  curly_extract <- function(x) {
+    # Find characters within curly braces
+    extracted <- gsub("[{}]", "", x)
+    return(extracted)
+  }
+  
+  scores <- rownames(table(matrix))
+  
+  # Extract uncertainties
+  curly <- unlist(lapply(scores, curly_extract))
+  
+  if (length(curly) != 0) { # If uncertainties present
+    for (i in curly) {
+      round_value <- paste0("(", i, ")")
+      matrix[matrix == paste0("{", i, "}")] <- round_value
+    }
+  }
+  
+  return(matrix)
+}
+
+################
