@@ -35,7 +35,6 @@ NEXUS files of empirical character taxon matrices used in Analysis 1.
 •	Avialae a and b (Benito et al., 2022): ‘Avialae_matrix.nex’.
 
 **R SCRIPT FILES**
-
 •	Functions: Script containing all custom functions necessary to carry out below analyses; ‘Functions_SuppInfo.R’.
 •	Analysis 1: Comparison of indexes for empirical and random matrices; ‘Analysis_1_v2.R’.
 •	Analysis 2: Inflating transition rate for simulated matrices; ‘Analysis_2_v1.R’.
