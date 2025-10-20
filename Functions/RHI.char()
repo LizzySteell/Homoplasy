@@ -1,112 +1,124 @@
- 
- ####### 2025-10-20
+### Adapt RHI.char function to accommodate ordered characters - using copilot's help
 
-##### RHI FUNCTION TO CALCULATE PER CHARACTER RHI VALUES#####
+####### 2025-10-20
 
-### V1.1 fixes problems due to using site-wise parsimony function.
+#V1.4
 
-### Dependencies: packages 'phangorn', 'ape', as well as functions from this package.
+# Updated RHI.char that uses the package's existing cost.matrix()
+# - Removed local cost.matrix definition and now calls the repository's cost.matrix()
+# - Keeps ordered argument optional (NULL), and uses Sankoff parsimony with cost.matrix() per ordered character
+# - Uses the package-local get.states() and uncert.to.poly() helpers
 
+RHI.char <- function(data, tree, n = 100, ordered = NULL){
 
-### Current version cannot calculate RHI for ordered multistate characters.
+  if(!requireNamespace("phangorn", quietly = TRUE)) stop("phangorn package required.")
+  if(!requireNamespace("ape", quietly = TRUE)) stop("ape package required.")
 
-### Reports 0 when no homoplasy (extra steps) is observed for a character.
+  # Ensure package-local helpers exist
+  if(!exists("get.states", mode = "function")) stop("get.states() not found — make sure Functions/get.states is sourced or the package is loaded.")
+  if(!exists("uncert.to.poly", mode = "function")) stop("uncert.to.poly() not found — make sure Functions/uncert.to.poly is sourced or the package is loaded.")
+  if(!exists("cost.matrix", mode = "function")) stop("cost.matrix() not found — make sure Functions/cost.matrix is sourced or the package is loaded.")
 
+  # Convert to a simple matrix for state extraction (polymorphisms in round brackets)
+  data_matrix <- uncert.to.poly(as.matrix(data))
 
-RHI.char <- function(data, tree, n){ 
-	
-	### 
-	
-	#data - a morphological phydat object generated using morph.phydat().
-	#tree - a phylogenetic tree (object of class phylo)
-	#n - number of randomisations (n = 1000 much slower than n = 100)
+  # Number of characters
+  nchar <- dim(as.matrix(data))[2]
 
-	# Make matrix object from phydat with round brackets for polymorphisms
-	
-	matrix <- uncert.to.poly(as.matrix(data))
-	
-	# Get number of characters from dataset
-	nchar <- dim(as.matrix(data))[2]
-	
-	#Put each character in phydat format into a list
-	char_list <- c()
-	for(i in 1:nchar){
-		char_list[[i]] <- data[,i]
-	}
-	
-	#lmin for individual characters is total number states -1 
-	
-	
-	#Create a list of lmins per character
-	lmin_chars <- c()
-	for(k in 1:length(char_list)){
-		lmin_chars[[k]] <- length(get.states(matrix[,k])) - 1
-	}
-	
-	lmin_chars <- unlist(lmin_chars)
-	
-	#Caluculate Lnull as normal
-	
-	#Subfunction to randomise tips and keep topology
-	rtips <- function(tree){
-		new_tips <- sample(tree$tip.label)
-		Rtree <- tree
-	Rtree$tip.label <- new_tips
-	return(Rtree)
-	}
-	#Replicates tip randomising n times and creates a list of trees
-	random_trees <- replicate(n, rtips(tree), simplify=FALSE)
-	
-	
-	### For now, just for unordered characters - otherwise cost matrix has to be calculated per character
-		
-		null_tlengths_char <- c()
-		for(m in 1:length(char_list)){
-	
-	null_tlengths_char[[m]] <- unlist(lapply(random_trees, parsimony, char_list[[m]])) 
-	
-		}
-	
-	# Calculate median Lnull per character
-	
-	Lnull_char_med <- as.numeric(unlist(lapply(null_tlengths_char, quantile, prob=0.5)))
-	
-	# Calculate character length for each character
-	
-	# char_lengths <- parsimony(tree, data, site='site') # For some reason this is making the wrong parsimony scores so let's calculate the scores separately
-	
-	char_lengths <- c()
-	for(b in 1:length(char_list)){
-		char_lengths[b] <- parsimony(tree, char_list[[b]])
-	}
-	
-	
-	# Subtract lmin from values and create new objects
-	
-	char_lengths_minus_lmin <- c()
-	for(h in 1:length(char_lengths)){
-		char_lengths_minus_lmin[h] <- char_lengths[h] - lmin_chars[h]
-	}
-	# Some characters have value of 0 (0 extra steps observed), so homoplasy has to be numerically zero.
-	# These should be excluded or NaNs from RHI equation should be converted to zero to reflect minimum homoplasy.
-	
-	
-	Lnull_minus_lmin <- c()
-	for(g in 1:length(Lnull_char_med)){
-		Lnull_minus_lmin[g] <- Lnull_char_med[g] - lmin_chars[g]
-	}
-	 # Some of these values are also zero
-	
-	# Calculate RHI per character from median character length.
-	
-		RHI_char <- (char_lengths_minus_lmin)/(Lnull_minus_lmin)
-		
-		
-	# Convert NaNs to zeros
-	
-	RHI_char[RHI_char == "NaN"] <- 0
-		
-		
-		return(RHI_char)
-	
-	}
+  # Validate ordered argument and convert names -> indices if necessary
+  if(!is.null(ordered)){
+    if(is.character(ordered)){
+      coln <- colnames(as.matrix(data))
+      if(is.null(coln)) stop("data has no column names; supply ordered as numeric indices.")
+      idx <- match(ordered, coln)
+      if(any(is.na(idx))) stop("Some ordered character names not found in data column names.")
+      ordered_idx <- sort(unique(idx))
+    } else if(is.numeric(ordered)){
+      if(any(ordered < 1 | ordered > nchar)) stop("ordered indices out of range.")
+      ordered_idx <- sort(unique(as.integer(ordered)))
+    } else {
+      stop("ordered must be NULL, a numeric vector of indices, or a character vector of column names.")
+    }
+  } else {
+    ordered_idx <- integer(0)
+  }
+
+  # Put each character (single-site phyDat) into a list
+  char_list <- vector("list", nchar)
+  for(i in seq_len(nchar)){
+    char_list[[i]] <- data[, i, drop = FALSE]
+  }
+
+  # lmin for individual characters: total number states - 1
+  lmin_chars <- integer(nchar)
+  for(k in seq_len(nchar)){
+    states_k <- get.states(data_matrix[, k])
+    lmin_chars[k] <- length(states_k) - 1
+  }
+
+  # Subfunction to randomise tips and keep topology
+  rtips <- function(tree){
+    new_tips <- sample(tree$tip.label)
+    Rtree <- tree
+    Rtree$tip.label <- new_tips
+    return(Rtree)
+  }
+
+  # Replicates tip randomising n times and creates a list of trees
+  random_trees <- replicate(n, rtips(tree), simplify = FALSE)
+
+  # Calculate Lnull (median) per character, accounting for ordered characters using Sankoff + cost.matrix()
+  null_tlengths_char <- vector("list", nchar)
+  for(m in seq_len(nchar)){
+    states_m <- get.states(data_matrix[, m])
+    nstates <- length(states_m)
+
+    if(m %in% ordered_idx && nstates > 1){
+      cost <- cost.matrix(states_m)
+      null_tlengths_char[[m]] <- unlist(lapply(random_trees, function(rt){
+        phangorn::parsimony(rt, char_list[[m]], method = "sankoff", cost = cost)
+      }))
+    } else {
+      null_tlengths_char[[m]] <- unlist(lapply(random_trees, function(rt){
+        phangorn::parsimony(rt, char_list[[m]])
+      }))
+    }
+  }
+
+  # Calculate median Lnull per character
+  Lnull_char_med <- as.numeric(sapply(null_tlengths_char, function(x) stats::quantile(x, prob = 0.5)))
+
+  # Calculate observed character length for each character (use Sankoff for ordered)
+  char_lengths <- numeric(nchar)
+  for(b in seq_len(nchar)){
+    states_b <- get.states(data_matrix[, b])
+    nstates_b <- length(states_b)
+
+    if(b %in% ordered_idx && nstates_b > 1){
+      cost_b <- cost.matrix(states_b)
+      char_lengths[b] <- phangorn::parsimony(tree, char_list[[b]], method = "sankoff", cost = cost_b)
+    } else {
+      char_lengths[b] <- phangorn::parsimony(tree, char_list[[b]])
+    }
+  }
+
+  # Subtract lmin
+  char_lengths_minus_lmin <- char_lengths - lmin_chars
+  Lnull_minus_lmin <- Lnull_char_med - lmin_chars
+
+  # Compute RHI per character
+  RHI_char <- char_lengths_minus_lmin / Lnull_minus_lmin
+
+  # Handle divide-by-zero and NaN/Inf:
+  zero_denom <- (Lnull_minus_lmin == 0)
+  RHI_char[zero_denom & (char_lengths_minus_lmin == 0)] <- 0
+  RHI_char[zero_denom & (char_lengths_minus_lmin != 0)] <- NA
+
+  RHI_char[is.nan(RHI_char)] <- 0
+
+  # Name the vector with column names if present, else with indices
+  coln <- colnames(as.matrix(data))
+  if(!is.null(coln)) names(RHI_char) <- coln else names(RHI_char) <- paste0("char", seq_len(nchar))
+
+  return(RHI_char)
+}
