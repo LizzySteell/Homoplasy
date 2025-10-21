@@ -2,4 +2,7 @@
 ### are not included in the R code supporting the article 'Revealing patterns of homoplasy in discrete phylogenetic
 ### datasets with a cross-comparable index'. 
 
-### If you have issues, please email ems207@cam.ac.uk explaining the problem.
+### If you have issues, please email lizzysteell@gmail.com explaining the problem.
+
+### As of 21-Oct-2025, these functions have been migrated to the phylodisc project (https://github.com/LizzySteell/phylodisc/new/main/functions)
+### This project will be developed into the phylodisc R package and the code will be developed in that repository
